@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom slider styles */
+.slider-orange::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #f97316;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider-orange::-webkit-slider-thumb:hover {
+  background: #ea580c;
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(249, 115, 22, 0.4);
+}
+
+.slider-orange::-webkit-slider-track {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(to right, #374151 0%, #f97316 var(--value, 50%), #374151 var(--value, 50%));
+}
+
+.slider-yellow::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #eab308;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(234, 179, 8, 0.3);
+  transition: all 0.2s ease;
+}
+
+.slider-yellow::-webkit-slider-thumb:hover {
+  background: #ca8a04;
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(234, 179, 8, 0.4);
+}
+
+.slider-yellow::-webkit-slider-track {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(to right, #374151 0%, #eab308 var(--value, 0%), #374151 var(--value, 0%));
+}
+
+/* Firefox slider styles */
+.slider-orange::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #f97316;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 8px rgba(249, 115, 22, 0.3);
+}
+
+.slider-yellow::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #eab308;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 8px rgba(234, 179, 8, 0.3);
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Scrollbar for log panel */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+.scrollbar-track-gray-800::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 3px;
+}
+
+/* Keyboard indicators animation */
+@keyframes pulse-cyan {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(6, 182, 212, 0);
+  }
+}
+
+.animate-pulse-cyan {
+  animation: pulse-cyan 2s infinite;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
