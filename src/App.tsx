@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield, GitBranch } from 'lucide-react';
 
 // Import komponen dan hooks yang diperlukan
 import { useMQTT } from './hooks/useMQTT'; 
@@ -9,6 +10,7 @@ import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import FlowchartPage from './pages/FlowchartPage';
 
 // ===================================================================
 // KONFIGURASI UTAMA APLIKASI
@@ -451,6 +453,13 @@ const RCCarController: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <Link 
+              to="/flowchart" 
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+            >
+              <GitBranch className="w-4 h-4" />
+              <span className="text-sm">Flowchart</span>
+            </Link>
             <MQTTStatus status={connectionStatus} isConnected={isConnected} />
             <UserProfile />
           </div>
@@ -709,20 +718,27 @@ const AppContent: React.FC = () => {
   }
 
   // Tampilkan main application jika user sudah authenticated
-  return <RCCarController />;
+  return (
+    <Routes>
+      <Route path="/" element={<RCCarController />} />
+      <Route path="/flowchart" element={<FlowchartPage />} />
+    </Routes>
+  );
 };
 
 /**
- * Root component dengan AuthProvider wrapper
+ * Root component dengan AuthProvider wrapper dan Router
  * 
  * Struktur:
- * AuthProvider -> AppContent -> (LoadingSpinner | LoginForm | RCCarController)
+ * Router -> AuthProvider -> AppContent -> (LoadingSpinner | LoginForm | Routes)
  */
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
