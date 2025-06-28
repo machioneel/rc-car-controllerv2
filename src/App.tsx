@@ -576,7 +576,7 @@ const RCCarController: React.FC = () => {
           <div className="xl:col-span-1 space-y-4">
             {/* Panel sensor proximity */}
             <div className="bg-gray-800/50 p-6 rounded-2xl">
-              <h3>Proximity Sensor</h3>
+              <h3>Sensor Jarak</h3>
               <p>Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
             </div>
             {/* Panel logs dengan scroll dan clear functionality */}
