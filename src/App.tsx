@@ -452,13 +452,6 @@ const RCCarController: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <Link 
-              to="/flowchart" 
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              <GitBranch className="w-4 h-4" />
-              <span className="text-sm">Flowchart</span>
-            </Link>
             <MQTTStatus status={connectionStatus} isConnected={isConnected} />
             <UserProfile />
           </div>
