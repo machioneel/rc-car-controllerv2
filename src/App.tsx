@@ -713,7 +713,6 @@ const AppContent: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<RCCarController />} />
-      <Route path="/flowchart" element={<FlowchartPage />} />
     </Routes>
   );
 };
