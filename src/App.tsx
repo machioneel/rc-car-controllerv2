@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield, GitBranch } from 'lucide-react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield } from 'lucide-react';
 
 // Import komponen dan hooks yang diperlukan
 import { useMQTT } from './hooks/useMQTT'; 
@@ -146,6 +146,30 @@ const RCCarController: React.FC = () => {
     // Update state logs dengan batasan maksimal 100 entries
     // Menggunakan slice(0, 99) untuk mempertahankan 99 log lama + 1 log baru
     setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]);
+  }, []);
+
+  /**
+   * Handler untuk menghapus semua logs
+   * 
+   * Algoritma:
+   * 1. Reset logs array ke empty array
+   * 2. Tambahkan log entry untuk mencatat aksi clear
+   */
+  const handleClearLogs = useCallback(() => {
+    setLogs([]);
+    
+    // Tambahkan log entry untuk mencatat aksi clear
+    const clearLog = {
+      id: Math.random().toString(36).substr(2, 9),
+      timestamp: new Date(),
+      level: 'INFO',
+      message: '[WEB] System logs cleared by user'
+    };
+    
+    // Set logs dengan hanya clear log entry
+    setTimeout(() => {
+      setLogs([clearLog]);
+    }, 100); // Delay kecil untuk smooth transition
   }, []);
 
   // ===============================================================
@@ -469,8 +493,8 @@ const RCCarController: React.FC = () => {
               <h3>Proximity Sensor</h3>
               <p>Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
             </div>
-            {/* Panel logs dengan scroll */}
-            <LogPanel logs={logs} />
+            {/* Panel logs dengan scroll dan clear functionality */}
+            <LogPanel logs={logs} onClearLogs={handleClearLogs} />
           </div>
 
           {/* Panel tengah: Live camera feed */}

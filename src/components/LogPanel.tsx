@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ScrollText, AlertCircle, Info, AlertTriangle, XCircle } from 'lucide-react';
+import { ScrollText, AlertCircle, Info, AlertTriangle, XCircle, Trash2 } from 'lucide-react';
 
 // ===================================================================
 // TYPE DEFINITIONS
@@ -21,6 +21,7 @@ interface LogEntry {
  */
 interface LogPanelProps {
   logs: LogEntry[];     // Array log entries yang akan ditampilkan
+  onClearLogs?: () => void; // Optional callback untuk clear logs
 }
 
 // ===================================================================
@@ -36,10 +37,12 @@ interface LogPanelProps {
  * 3. Icon yang sesuai untuk setiap log level
  * 4. Timestamp formatting
  * 5. Responsive design dengan scroll
+ * 6. Clear logs functionality
  * 
  * @param logs - Array log entries yang akan ditampilkan
+ * @param onClearLogs - Optional callback untuk clear logs
  */
-export const LogPanel: React.FC<LogPanelProps> = ({ logs }) => {
+export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
   
   // ===============================================================
   // REFS AND SCROLL MANAGEMENT
@@ -65,6 +68,30 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs }) => {
       scrollRef.current.scrollTop = 0;
     }
   }, [logs]); // Dependency: logs array
+
+  // ===============================================================
+  // EVENT HANDLERS
+  // ===============================================================
+  
+  /**
+   * Handler untuk clear logs dengan konfirmasi
+   * 
+   * Algoritma:
+   * 1. Tampilkan konfirmasi dialog
+   * 2. Jika user confirm, panggil onClearLogs callback
+   * 3. Parent component akan handle state update
+   */
+  const handleClearLogs = () => {
+    if (logs.length === 0) return; // Tidak ada logs untuk dihapus
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to clear all ${logs.length} log entries? This action cannot be undone.`
+    );
+    
+    if (confirmed && onClearLogs) {
+      onClearLogs();
+    }
+  };
 
   // ===============================================================
   // UTILITY FUNCTIONS
@@ -155,11 +182,24 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs }) => {
           <ScrollText className="w-5 h-5 text-cyan-500 mr-2" />
           System Logs
         </h3>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {/* Counter untuk jumlah log entries */}
           <span className="text-xs text-gray-400">
             {logs.length} entries
           </span>
+          
+          {/* Clear logs button */}
+          {logs.length > 0 && onClearLogs && (
+            <button
+              onClick={handleClearLogs}
+              className="flex items-center space-x-1 px-2 py-1 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 rounded-lg transition-colors text-red-400 hover:text-red-300"
+              title="Clear all logs"
+            >
+              <Trash2 className="w-3 h-3" />
+              <span className="text-xs font-medium">Clear</span>
+            </button>
+          )}
+          
           {/* Live indicator */}
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         </div>
