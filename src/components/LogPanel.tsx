@@ -88,7 +88,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs, isLoading
     if (logs.length === 0) return; // Tidak ada logs untuk dihapus
     
     const confirmed = window.confirm(
-      `Are you sure you want to clear all ${logs.length} log entries? This will also delete them from the database. This action cannot be undone.`
+      `Apa anda yakin ingin menghapus ${logs.length} entri log? Ini juga akan menghapusnya dari database. Tindakan ini tidak dapat dibatalkan.`
     );
     
     if (confirmed && onClearLogs) {
