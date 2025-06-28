@@ -133,13 +133,13 @@ export const UserProfile: React.FC = () => {
             <div className="p-2">
               
               {/* Settings menu item */}
-              <button
+              {/*<button
                 onClick={() => setIsOpen(false)}
                 className="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <Settings className="w-4 h-4 text-gray-400" />
-                {/*<span className="text-sm text-gray-300">Settings</span>*/}
-              </button>
+                <span className="text-sm text-gray-300">Settings</span>
+              </button>*/}
               
               {/* Sign out menu item dengan styling khusus */}
               <button
