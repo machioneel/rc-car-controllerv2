@@ -183,7 +183,7 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs, isLoading
       <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
         <h3 className="text-lg font-semibold flex items-center">
           <ScrollText className="w-5 h-5 text-cyan-500 mr-2" />
-          System Logs
+          Log Sistem
           {/* Database indicator */}
           <Database className="w-4 h-4 text-gray-400 ml-2" title="Logs are stored in database" />
         </h3>
