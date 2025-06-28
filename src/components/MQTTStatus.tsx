@@ -108,7 +108,7 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
         
         {/* Additional info untuk connected state */}
         {isConnected && (
-          <p className="text-xs text-gray-400">Private Cluster</p>
+          <p className="text-xs text-gray-400">MQTT Broker</p>
         )}
       </div>
     </div>
