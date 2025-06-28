@@ -10,6 +10,7 @@ import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { saveLogToDatabase, clearLogsFromDatabase, getLogsFromDatabase } from './lib/supabase';
 
 // ===================================================================
 // KONFIGURASI UTAMA APLIKASI
@@ -101,6 +102,7 @@ const RCCarController: React.FC = () => {
    * isAutonomous: Flag untuk mode autonomous driving
    * logs: Array untuk menyimpan log messages dengan metadata
    * distance: Nilai sensor jarak dalam centimeter
+   * isLoadingLogs: Flag untuk loading state saat fetch logs dari database
    */
   const [speedPercent, setSpeedPercent] = useState<number>(50);
   const [ledPercent, setLedPercent] = useState<number>(0);
@@ -110,9 +112,55 @@ const RCCarController: React.FC = () => {
   const [isAutonomous, setIsAutonomous] = useState<boolean>(false);
   const [logs, setLogs] = useState<Array<{id: string, timestamp: Date, level: string, message: string}>>([]);
   const [distance, setDistance] = useState<number | null>(null);
+  const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
 
   // Hook MQTT untuk komunikasi dengan ESP32
   const { isConnected, connectionStatus, publish, subscribe, lastMessage } = useMQTT(mqttConfig);
+
+  // ===============================================================
+  // DATABASE OPERATIONS
+  // ===============================================================
+  
+  /**
+   * Function untuk load logs dari database saat aplikasi start
+   * 
+   * Algoritma:
+   * 1. Set loading state
+   * 2. Fetch logs dari database (latest 100 entries)
+   * 3. Convert format database ke format UI state
+   * 4. Update logs state
+   * 5. Reset loading state
+   */
+  const loadLogsFromDatabase = useCallback(async () => {
+    setIsLoadingLogs(true);
+    
+    try {
+      const result = await getLogsFromDatabase(100, 'esp32_car');
+      
+      if (result.success && result.data) {
+        // Convert database format ke UI format
+        const dbLogs = result.data.map(dbLog => ({
+          id: dbLog.id,
+          timestamp: new Date(dbLog.timestamp),
+          level: dbLog.level,
+          message: dbLog.message
+        }));
+        
+        setLogs(dbLogs);
+      }
+    } catch (error) {
+      console.error('Error loading logs from database:', error);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  /**
+   * Effect untuk load logs dari database saat component mount
+   */
+  useEffect(() => {
+    loadLogsFromDatabase();
+  }, [loadLogsFromDatabase]);
 
   // ===============================================================
   // ALGORITMA PEMROSESAN LOG MESSAGES
@@ -124,16 +172,18 @@ const RCCarController: React.FC = () => {
    * Algoritma:
    * 1. Analisis level log berdasarkan keyword dalam message
    * 2. Buat object log dengan metadata (id, timestamp, level, message)
-   * 3. Tambahkan ke array logs dengan batasan maksimal 100 entries
-   * 4. Gunakan useCallback untuk optimasi performa
+   * 3. Simpan ke database secara asynchronous
+   * 4. Tambahkan ke array logs dengan batasan maksimal 100 entries
+   * 5. Gunakan useCallback untuk optimasi performa
    * 
    * @param logData - String log message dari ESP32
    */
-  const handleLogMessage = useCallback((logData: string) => {
+  const handleLogMessage = useCallback(async (logData: string) => {
     // Algoritma deteksi level log berdasarkan keyword
     let level = 'INFO'; // Default level
     if (logData.toUpperCase().includes("ERROR")) level = 'ERROR';
     if (logData.toUpperCase().includes("WARNING")) level = 'WARNING';
+    if (logData.toUpperCase().includes("DEBUG")) level = 'DEBUG';
     
     // Buat log entry dengan metadata lengkap
     const newLog = {
@@ -142,6 +192,17 @@ const RCCarController: React.FC = () => {
       level: level, // Level log yang terdeteksi
       message: logData // Pesan log asli
     };
+    
+    // Simpan ke database secara asynchronous (tidak menunggu hasil)
+    saveLogToDatabase({
+      level: level,
+      message: logData,
+      device_id: 'esp32_car',
+      timestamp: newLog.timestamp.toISOString()
+    }).catch(error => {
+      console.error('Failed to save log to database:', error);
+      // Tidak mengganggu UI flow jika database save gagal
+    });
     
     // Update state logs dengan batasan maksimal 100 entries
     // Menggunakan slice(0, 99) untuk mempertahankan 99 log lama + 1 log baru
@@ -152,24 +213,49 @@ const RCCarController: React.FC = () => {
    * Handler untuk menghapus semua logs
    * 
    * Algoritma:
-   * 1. Reset logs array ke empty array
-   * 2. Tambahkan log entry untuk mencatat aksi clear
+   * 1. Hapus logs dari database
+   * 2. Reset logs array ke empty array
+   * 3. Tambahkan log entry untuk mencatat aksi clear
+   * 4. Handle error jika database operation gagal
    */
-  const handleClearLogs = useCallback(() => {
-    setLogs([]);
-    
-    // Tambahkan log entry untuk mencatat aksi clear
-    const clearLog = {
-      id: Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(),
-      level: 'INFO',
-      message: '[WEB] System logs cleared by user'
-    };
-    
-    // Set logs dengan hanya clear log entry
-    setTimeout(() => {
-      setLogs([clearLog]);
-    }, 100); // Delay kecil untuk smooth transition
+  const handleClearLogs = useCallback(async () => {
+    try {
+      // Hapus logs dari database
+      const result = await clearLogsFromDatabase('esp32_car');
+      
+      if (result.success) {
+        // Reset logs state
+        setLogs([]);
+        
+        // Tambahkan log entry untuk mencatat aksi clear
+        const clearLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: new Date(),
+          level: 'INFO',
+          message: '[WEB] System logs cleared by user'
+        };
+        
+        // Simpan clear log ke database
+        await saveLogToDatabase({
+          level: 'INFO',
+          message: '[WEB] System logs cleared by user',
+          device_id: 'esp32_car'
+        });
+        
+        // Set logs dengan hanya clear log entry
+        setTimeout(() => {
+          setLogs([clearLog]);
+        }, 100); // Delay kecil untuk smooth transition
+      } else {
+        console.error('Failed to clear logs from database:', result.error);
+        // Tetap clear UI logs meskipun database operation gagal
+        setLogs([]);
+      }
+    } catch (error) {
+      console.error('Error clearing logs:', error);
+      // Fallback: clear UI logs
+      setLogs([]);
+    }
   }, []);
 
   // ===============================================================
@@ -181,7 +267,7 @@ const RCCarController: React.FC = () => {
    * 
    * Algoritma pemrosesan berdasarkan topic:
    * 1. CAMERA: Convert binary data ke Object URL untuk display
-   * 2. LOG: Parse dan tambahkan ke log panel
+   * 2. LOG: Parse dan tambahkan ke log panel + database
    * 3. STATUS: Log status mobil ke console
    * 4. SENSOR_DISTANCE: Update nilai sensor jarak
    * 
@@ -494,7 +580,11 @@ const RCCarController: React.FC = () => {
               <p>Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
             </div>
             {/* Panel logs dengan scroll dan clear functionality */}
-            <LogPanel logs={logs} onClearLogs={handleClearLogs} />
+            <LogPanel 
+              logs={logs} 
+              onClearLogs={handleClearLogs}
+              isLoading={isLoadingLogs}
+            />
           </div>
 
           {/* Panel tengah: Live camera feed */}

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { ScrollText, AlertCircle, Info, AlertTriangle, XCircle, Trash2 } from 'lucide-react';
+import { ScrollText, AlertCircle, Info, AlertTriangle, XCircle, Trash2, Database, Loader } from 'lucide-react';
 
 // ===================================================================
 // TYPE DEFINITIONS
@@ -20,8 +20,9 @@ interface LogEntry {
  * Props interface untuk LogPanel component
  */
 interface LogPanelProps {
-  logs: LogEntry[];     // Array log entries yang akan ditampilkan
+  logs: LogEntry[];         // Array log entries yang akan ditampilkan
   onClearLogs?: () => void; // Optional callback untuk clear logs
+  isLoading?: boolean;      // Optional loading state untuk database operations
 }
 
 // ===================================================================
@@ -37,12 +38,14 @@ interface LogPanelProps {
  * 3. Icon yang sesuai untuk setiap log level
  * 4. Timestamp formatting
  * 5. Responsive design dengan scroll
- * 6. Clear logs functionality
+ * 6. Clear logs functionality dengan database integration
+ * 7. Loading state untuk database operations
  * 
  * @param logs - Array log entries yang akan ditampilkan
  * @param onClearLogs - Optional callback untuk clear logs
+ * @param isLoading - Optional loading state untuk database operations
  */
-export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
+export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs, isLoading = false }) => {
   
   // ===============================================================
   // REFS AND SCROLL MANAGEMENT
@@ -79,13 +82,13 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
    * Algoritma:
    * 1. Tampilkan konfirmasi dialog
    * 2. Jika user confirm, panggil onClearLogs callback
-   * 3. Parent component akan handle state update
+   * 3. Parent component akan handle state update dan database operation
    */
   const handleClearLogs = () => {
     if (logs.length === 0) return; // Tidak ada logs untuk dihapus
     
     const confirmed = window.confirm(
-      `Are you sure you want to clear all ${logs.length} log entries? This action cannot be undone.`
+      `Are you sure you want to clear all ${logs.length} log entries? This will also delete them from the database. This action cannot be undone.`
     );
     
     if (confirmed && onClearLogs) {
@@ -181,6 +184,8 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
         <h3 className="text-lg font-semibold flex items-center">
           <ScrollText className="w-5 h-5 text-cyan-500 mr-2" />
           System Logs
+          {/* Database indicator */}
+          <Database className="w-4 h-4 text-gray-400 ml-2" title="Logs are stored in database" />
         </h3>
         <div className="flex items-center space-x-3">
           {/* Counter untuk jumlah log entries */}
@@ -192,10 +197,15 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
           {logs.length > 0 && onClearLogs && (
             <button
               onClick={handleClearLogs}
-              className="flex items-center space-x-1 px-2 py-1 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 rounded-lg transition-colors text-red-400 hover:text-red-300"
-              title="Clear all logs"
+              disabled={isLoading}
+              className="flex items-center space-x-1 px-2 py-1 bg-red-600/20 hover:bg-red-600/30 border border-red-600/30 rounded-lg transition-colors text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Clear all logs from UI and database"
             >
-              <Trash2 className="w-3 h-3" />
+              {isLoading ? (
+                <Loader className="w-3 h-3 animate-spin" />
+              ) : (
+                <Trash2 className="w-3 h-3" />
+              )}
               <span className="text-xs font-medium">Clear</span>
             </button>
           )}
@@ -212,7 +222,15 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
         ref={scrollRef}
         className="flex-1 p-4 space-y-2 overflow-y-auto max-h-96 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
       >
-        {logs.length === 0 ? (
+        {isLoading ? (
+          // =====================================================
+          // LOADING STATE
+          // =====================================================
+          <div className="text-center py-8">
+            <Loader className="w-12 h-12 text-gray-600 mx-auto mb-3 animate-spin" />
+            <p className="text-gray-500 text-sm">Loading logs from database...</p>
+          </div>
+        ) : logs.length === 0 ? (
           // =====================================================
           // EMPTY STATE
           // =====================================================
@@ -264,11 +282,11 @@ export const LogPanel: React.FC<LogPanelProps> = ({ logs, onClearLogs }) => {
       {/* =========================================================
           FOOTER SECTION (hanya tampil jika ada logs)
           ========================================================= */}
-      {logs.length > 0 && (
+      {logs.length > 0 && !isLoading && (
         <div className="p-3 border-t border-gray-700/50 bg-gray-900/30">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>Real-time logging active</span>
-            <span>Max 100 entries</span>
+            <span>Stored in database</span>
           </div>
         </div>
       )}
