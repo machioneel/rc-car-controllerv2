@@ -715,7 +715,7 @@ const RCCarController: React.FC = () => {
             
             {/* Header kontrol arah dengan indikator keyboard */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Direction Controls</h3>
+              <h3 className="text-lg font-semibold">Kontrol Manual</h3>
               <div className="flex items-center space-x-2 text-xs">
                 <span className="text-gray-400">Keys:</span>
                 <span className={getKeyIndicatorClass('w')}>W</span>
