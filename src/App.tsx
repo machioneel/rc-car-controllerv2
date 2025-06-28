@@ -10,7 +10,6 @@ import { LoginForm } from './components/LoginForm';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import FlowchartPage from './pages/FlowchartPage';
 
 // ===================================================================
 // KONFIGURASI UTAMA APLIKASI
