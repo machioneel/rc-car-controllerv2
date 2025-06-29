@@ -548,20 +548,20 @@ const RCCarController: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white select-none">
       {/* Header dengan status koneksi dan user profile */}
-      <header className="p-6 border-b border-gray-700/50 backdrop-blur-sm bg-gray-900/80 sticky top-0 z-10">
+      <header className="p-4 sm:p-6 border-b border-gray-700/50 backdrop-blur-sm bg-gray-900/80 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-cyan-500/20 rounded-lg">
-              <Camera className="w-8 h-8 text-cyan-500" />
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 bg-cyan-500/20 rounded-lg">
+              <Camera className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-500" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
                 RC Car Controller
               </h1>
-              <p className="text-sm text-gray-400">ESP32-CAM Internet Control</p>
+              <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">ESP32-CAM Internet Control</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <MQTTStatus status={connectionStatus} isConnected={isConnected} />
             <UserProfile />
           </div>
@@ -569,15 +569,15 @@ const RCCarController: React.FC = () => {
       </header>
 
       {/* Main content area dengan grid layout responsif */}
-      <main className="max-w-7xl mx-auto p-6 space-y-6">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+      <main className="max-w-7xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
           
-          {/* Panel kiri: Sensor data dan logs */}
-          <div className="xl:col-span-1 space-y-4">
+          {/* Panel kiri: Sensor data dan logs - Hidden pada mobile, tampil di tablet+ */}
+          <div className="hidden lg:block lg:col-span-1 space-y-4">
             {/* Panel sensor proximity */}
-            <div className="bg-gray-800/50 p-6 rounded-2xl">
-              <h3>Sensor Jarak</h3>
-              <p>Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
+            <div className="bg-gray-800/50 p-4 sm:p-6 rounded-2xl">
+              <h3 className="text-sm sm:text-base font-semibold mb-2">Sensor Jarak</h3>
+              <p className="text-sm sm:text-base">Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
             </div>
             {/* Panel logs dengan scroll dan clear functionality */}
             <LogPanel 
@@ -588,11 +588,11 @@ const RCCarController: React.FC = () => {
           </div>
 
           {/* Panel tengah: Live camera feed */}
-          <div className="xl:col-span-2">
+          <div className="lg:col-span-2">
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50 overflow-hidden">
-              <div className="p-4 border-b border-gray-700/50 flex justify-between items-center">
-                <h2 className="text-lg font-semibold flex items-center space-x-2">
-                  <Camera className="w-5 h-5 text-cyan-500" />
+              <div className="p-3 sm:p-4 border-b border-gray-700/50 flex justify-between items-center">
+                <h2 className="text-base sm:text-lg font-semibold flex items-center space-x-2">
+                  <Camera className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-500" />
                   <span>Live Feed</span>
                 </h2>
                 <button 
@@ -600,7 +600,7 @@ const RCCarController: React.FC = () => {
                   className="bg-gray-700 hover:bg-gray-600 p-2 rounded-lg" 
                   title="Putar Gambar"
                 >
-                  <RotateCw className="w-5 h-5" />
+                  <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
               
@@ -620,8 +620,8 @@ const RCCarController: React.FC = () => {
                 ) : (
                   // Placeholder saat stream tidak tersedia
                   <div className="text-center">
-                    <Camera className="w-16 h-16 text-gray-600 mx-auto" />
-                    <p className="text-gray-500">
+                    <Camera className="w-12 h-12 sm:w-16 sm:h-16 text-gray-600 mx-auto" />
+                    <p className="text-sm sm:text-base text-gray-500">
                       {!isConnected ? 'Koneksi Terputus' : 'Menunggu Stream...'}
                     </p>
                   </div>
@@ -629,36 +629,45 @@ const RCCarController: React.FC = () => {
                 
                 {/* Indikator LIVE saat stream aktif */}
                 {cameraUrl && isConnected && (
-                  <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <div className="absolute top-2 sm:top-4 left-2 sm:left-4 bg-red-500 text-white px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center space-x-1 sm:space-x-2">
+                    <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
                     <span>LIVE</span>
                   </div>
                 )}
                 
                 {/* Indikator mode autonomous */}
                 {isAutonomous && (
-                  <div className="absolute top-4 right-4 bg-green-500/90 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-2">
+                  <div className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-green-500/90 text-white px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium flex items-center space-x-1 sm:space-x-2">
                     <Shield className="w-3 h-3" />
                     <span>AUTO MODE</span>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Mobile-only sensor info */}
+            <div className="lg:hidden mt-4 bg-gray-800/50 p-4 rounded-2xl">
+              <h3 className="text-sm font-semibold mb-2 flex items-center">
+                <Gauge className="w-4 h-4 text-orange-500 mr-2" />
+                Sensor Jarak
+              </h3>
+              <p className="text-sm">Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
+            </div>
           </div>
 
           {/* Panel kanan: Controls */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
             
             {/* Panel kontrol mode autonomous */}
-            <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Bot className="w-5 h-5 text-green-500 mr-2" />
+            <div className="bg-gray-800/50 p-4 sm:p-6 rounded-2xl border border-gray-700/50">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center">
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mr-2" />
                 Autonomous Mode
               </h3>
               <button 
                 onClick={toggleAutonomousMode} 
                 disabled={!isConnected} 
-                className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                className={`w-full flex items-center justify-center space-x-2 px-4 py-3 sm:py-3 rounded-lg font-medium transition-all text-sm sm:text-base ${
                   !isConnected 
                     ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
                     : isAutonomous 
@@ -666,21 +675,21 @@ const RCCarController: React.FC = () => {
                       : 'bg-green-600 hover:bg-green-500 text-white'
                 }`}
               >
-                {isAutonomous ? <Pause /> : <Play />}
+                {isAutonomous ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
                 <span>{isAutonomous ? 'Stop Autonomous' : 'Start Autonomous'}</span>
               </button>
             </div>
             
             {/* Panel kontrol power dan lighting */}
-            <div className="bg-gray-800/50 p-6 rounded-2xl border border-gray-700/50">
-              <h3 className="text-lg font-semibold flex items-center">
-                <Gauge className="w-5 h-5 text-orange-500 mr-2" />
+            <div className="bg-gray-800/50 p-4 sm:p-6 rounded-2xl border border-gray-700/50">
+              <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center">
+                <Gauge className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 mr-2" />
                 Power & Lighting
               </h3>
               
               {/* Slider kontrol kecepatan */}
-              <div>
-                <div className="flex items-center justify-between text-sm">
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-gray-400">Speed</span>
                   <span className="text-orange-500 font-mono">{speedPercent}%</span>
                 </div>
@@ -690,14 +699,14 @@ const RCCarController: React.FC = () => {
                   max="100" 
                   value={speedPercent} 
                   onChange={(e) => handleSpeedChange(parseInt(e.target.value))} 
-                  className="w-full" 
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-orange" 
                   disabled={!isConnected || isAutonomous} 
                 />
               </div>
               
               {/* Slider kontrol LED flash */}
               <div>
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center justify-between text-sm mb-2">
                   <span className="text-gray-400">Flash</span>
                   <span className="text-yellow-500 font-mono">{ledPercent}%</span>
                 </div>
@@ -707,16 +716,16 @@ const RCCarController: React.FC = () => {
                   max="100" 
                   value={ledPercent} 
                   onChange={(e) => handleLEDChange(parseInt(e.target.value))} 
-                  className="w-full" 
+                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-yellow" 
                   disabled={!isConnected} 
                 />
               </div>
             </div>
             
             {/* Header kontrol arah dengan indikator keyboard */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Kontrol Manual</h3>
-              <div className="flex items-center space-x-2 text-xs">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h3 className="text-base sm:text-lg font-semibold">Kontrol Manual</h3>
+              <div className="hidden sm:flex items-center space-x-2 text-xs">
                 <span className="text-gray-400">Keys:</span>
                 <span className={getKeyIndicatorClass('w')}>W</span>
                 <span className={getKeyIndicatorClass('a')}>A</span>
@@ -725,20 +734,26 @@ const RCCarController: React.FC = () => {
               </div>
             </div>
             
-            {/* Grid kontrol arah (3x3 dengan tombol di posisi + ) */}
+            {/* Grid kontrol arah (3x3 dengan tombol di posisi + ) - Optimized untuk mobile */}
             <div className="flex justify-center">
-              <div className="grid grid-cols-3 gap-4 w-64">
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 w-full max-w-xs mx-auto">
                 <div></div>
                 {/* Tombol Forward */}
                 <button 
                   onMouseDown={() => handleDirectionControl('forward')} 
                   onMouseUp={() => handleDirectionControl('stop')} 
-                  onTouchStart={() => handleDirectionControl('forward')} 
-                  onTouchEnd={() => handleDirectionControl('stop')} 
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('forward');
+                  }} 
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('stop');
+                  }} 
                   disabled={!isConnected || isAutonomous} 
-                  className="p-4 bg-gray-700 rounded-lg active:bg-cyan-500 disabled:bg-gray-600"
+                  className="p-3 sm:p-4 bg-gray-700 hover:bg-cyan-500 active:bg-cyan-600 disabled:bg-gray-600 rounded-lg transition-colors touch-manipulation"
                 >
-                  <ArrowUp />
+                  <ArrowUp className="w-6 h-6 sm:w-8 sm:h-8 mx-auto" />
                 </button>
                 <div></div>
                 
@@ -746,33 +761,45 @@ const RCCarController: React.FC = () => {
                 <button 
                   onMouseDown={() => handleDirectionControl('left')} 
                   onMouseUp={() => handleDirectionControl('stop')} 
-                  onTouchStart={() => handleDirectionControl('left')} 
-                  onTouchEnd={() => handleDirectionControl('stop')} 
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('left');
+                  }} 
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('stop');
+                  }} 
                   disabled={!isConnected || isAutonomous} 
-                  className="p-4 bg-gray-700 rounded-lg active:bg-cyan-500 disabled:bg-gray-600"
+                  className="p-3 sm:p-4 bg-gray-700 hover:bg-cyan-500 active:bg-cyan-600 disabled:bg-gray-600 rounded-lg transition-colors touch-manipulation"
                 >
-                  <ArrowLeft />
+                  <ArrowLeft className="w-6 h-6 sm:w-8 sm:h-8 mx-auto" />
                 </button>
                 
                 {/* Tombol Stop */}
                 <button 
                   onClick={() => handleDirectionControl('stop')} 
                   disabled={!isConnected || isAutonomous} 
-                  className="p-4 bg-red-600 rounded-lg active:bg-red-500 disabled:bg-gray-600"
+                  className="p-3 sm:p-4 bg-red-600 hover:bg-red-500 active:bg-red-700 disabled:bg-gray-600 rounded-lg transition-colors touch-manipulation"
                 >
-                  <Square />
+                  <Square className="w-6 h-6 sm:w-8 sm:h-8 mx-auto" />
                 </button>
                 
                 {/* Tombol Right */}
                 <button 
                   onMouseDown={() => handleDirectionControl('right')} 
                   onMouseUp={() => handleDirectionControl('stop')} 
-                  onTouchStart={() => handleDirectionControl('right')} 
-                  onTouchEnd={() => handleDirectionControl('stop')} 
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('right');
+                  }} 
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('stop');
+                  }} 
                   disabled={!isConnected || isAutonomous} 
-                  className="p-4 bg-gray-700 rounded-lg active:bg-cyan-500 disabled:bg-gray-600"
+                  className="p-3 sm:p-4 bg-gray-700 hover:bg-cyan-500 active:bg-cyan-600 disabled:bg-gray-600 rounded-lg transition-colors touch-manipulation"
                 >
-                  <ArrowRight />
+                  <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 mx-auto" />
                 </button>
                 
                 <div></div>
@@ -780,17 +807,41 @@ const RCCarController: React.FC = () => {
                 <button 
                   onMouseDown={() => handleDirectionControl('backward')} 
                   onMouseUp={() => handleDirectionControl('stop')} 
-                  onTouchStart={() => handleDirectionControl('backward')} 
-                  onTouchEnd={() => handleDirectionControl('stop')} 
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('backward');
+                  }} 
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    handleDirectionControl('stop');
+                  }} 
                   disabled={!isConnected || isAutonomous} 
-                  className="p-4 bg-gray-700 rounded-lg active:bg-cyan-500 disabled:bg-gray-600"
+                  className="p-3 sm:p-4 bg-gray-700 hover:bg-cyan-500 active:bg-cyan-600 disabled:bg-gray-600 rounded-lg transition-colors touch-manipulation"
                 >
-                  <ArrowDown />
+                  <ArrowDown className="w-6 h-6 sm:w-8 sm:h-8 mx-auto" />
                 </button>
                 <div></div>
               </div>
             </div>
+
+            {/* Mobile keyboard indicator */}
+            <div className="sm:hidden flex items-center justify-center space-x-2 text-xs mt-4">
+              <span className="text-gray-400">Keyboard:</span>
+              <span className={getKeyIndicatorClass('w')}>W</span>
+              <span className={getKeyIndicatorClass('a')}>A</span>
+              <span className={getKeyIndicatorClass('s')}>S</span>
+              <span className={getKeyIndicatorClass('d')}>D</span>
+            </div>
           </div>
+        </div>
+
+        {/* Mobile-only logs section */}
+        <div className="lg:hidden">
+          <LogPanel 
+            logs={logs} 
+            onClearLogs={handleClearLogs}
+            isLoading={isLoadingLogs}
+          />
         </div>
       </main>
     </div>

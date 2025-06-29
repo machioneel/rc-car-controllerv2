@@ -72,11 +72,11 @@ export const UserProfile: React.FC = () => {
           ========================================================= */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
+        className="flex items-center space-x-2 sm:space-x-3 p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
       >
         {/* User avatar dengan gradient background */}
-        <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-          <User className="w-4 h-4 text-white" />
+        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
         </div>
         
         {/* User info (hidden pada mobile) */}
@@ -88,7 +88,7 @@ export const UserProfile: React.FC = () => {
         </div>
         
         {/* Dropdown chevron dengan rotasi animasi */}
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* =========================================================
@@ -103,21 +103,21 @@ export const UserProfile: React.FC = () => {
           />
           
           {/* Dropdown content */}
-          <div className="absolute right-0 top-full mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20">
+          <div className="absolute right-0 top-full mt-2 w-56 sm:w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20">
             
             {/* =====================================================
                 USER INFO SECTION
                 ===================================================== */}
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-3 sm:p-4 border-b border-gray-700">
               <div className="flex items-center space-x-3">
                 {/* Larger avatar untuk dropdown */}
-                <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 
                 {/* User details */}
-                <div>
-                  <p className="text-sm font-medium text-white">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white truncate">
                     {user.email}
                   </p>
                   <p className="text-xs text-gray-400">

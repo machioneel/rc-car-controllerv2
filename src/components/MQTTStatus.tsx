@@ -50,7 +50,7 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
     switch (status) {
       case 'connected':
         return {
-          icon: <Wifi className="w-5 h-5 text-green-500" />,
+          icon: <Wifi className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
           text: 'Connected',
           textColor: 'text-green-500',
           bgColor: 'bg-green-500/10',
@@ -59,7 +59,7 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
         
       case 'connecting':
         return {
-          icon: <Loader className="w-5 h-5 text-yellow-500 animate-spin" />,
+          icon: <Loader className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 animate-spin" />,
           text: 'Connecting...',
           textColor: 'text-yellow-500',
           bgColor: 'bg-yellow-500/10',
@@ -68,7 +68,7 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
         
       case 'error':
         return {
-          icon: <AlertCircle className="w-5 h-5 text-red-500" />,
+          icon: <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
           text: 'Connection Error',
           textColor: 'text-red-500',
           bgColor: 'bg-red-500/10',
@@ -77,7 +77,7 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
         
       default: // 'disconnected' dan status lainnya
         return {
-          icon: <WifiOff className="w-5 h-5 text-gray-500" />,
+          icon: <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />,
           text: 'Disconnected',
           textColor: 'text-gray-500',
           bgColor: 'bg-gray-500/10',
@@ -94,13 +94,13 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
   // ===============================================================
   
   return (
-    <div className={`flex items-center space-x-3 px-4 py-2 rounded-lg border ${config.bgColor} ${config.borderColor}`}>
+    <div className={`flex items-center space-x-2 sm:space-x-3 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border ${config.bgColor} ${config.borderColor}`}>
       
       {/* Status icon dengan animasi jika diperlukan */}
       {config.icon}
       
-      {/* Status text dan additional info */}
-      <div>
+      {/* Status text dan additional info - Hidden pada mobile kecil */}
+      <div className="hidden sm:block">
         {/* Main status text */}
         <span className={`${config.textColor} text-sm font-medium`}>
           {config.text}
