@@ -1,0 +1,979 @@
+// ===================================================================
+// ESP32 RC CAR - ENHANCED AUTONOMOUS DISTANCE CONTROL SYSTEM
+// Version: 4.0 - Adjustable Distance Settings with EEPROM Persistence
+// ===================================================================
+
+// --- BAGIAN 1: INCLUDE LIBRARY ---
+#include "esp_camera.h"
+#include <WiFiMulti.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <PubSubClient.h>
+#include <EEPROM.h>
+#include <ArduinoJson.h>
+#include "time.h"
+
+// --- BAGIAN 2: KONFIGURASI UTAMA ---
+
+// --- Konfigurasi WiFi ---
+WiFiMulti wifiMulti;
+struct WiFiCredentials { const char* ssid; const char* password; };
+WiFiCredentials wifiList[] = {
+    {"YouTube_Studio_5G", "B3rkahS3lalu"},
+    {"YouTube_Studio", "S3laluB3rkah"},
+    {"Galaxy", "12345678"}
+};
+
+// --- Konfigurasi Pin ---
+#define MOTOR_EN 2 
+#define IN1 14
+#define IN2 15
+#define IN3 12
+#define IN4 13
+#define FLASH_PIN 4 
+#define TRIG_PIN 0
+#define ECHO_PIN 3
+
+// --- Konfigurasi PWM ---
+const int PWM_FREQ = 1000;
+const int PWM_RESOLUTION = 8;
+const int PWM_MOTOR_CHANNEL = 0;
+const int PWM_FLASH_CHANNEL = 1;
+
+// --- Konfigurasi MQTT ---
+const char* mqtt_server = "098567b786d74be2863e6859abdf1f0e.s1.eu.hivemq.cloud";
+const int mqtt_port = 8883;
+const char* mqtt_user = "esp32-user"; 
+const char* mqtt_password = "Jangan999";
+
+// --- Definisi Topic MQTT ---
+#define MQTT_CAM_STREAM_TOPIC "esp32/cam/stream"
+#define MQTT_CONTROL_MOVE_TOPIC "esp32/car/control/move"
+#define MQTT_CONTROL_SPEED_TOPIC "esp32/car/control/speed"
+#define MQTT_CONTROL_FLASH_TOPIC "esp32/car/control/flash"
+#define MQTT_DISTANCE_SETTINGS_TOPIC "esp32/car/config/distance"
+#define MQTT_STATUS_TOPIC "esp32/car/status"
+#define MQTT_LOG_TOPIC "esp32/car/log"
+#define MQTT_COMMAND_AUTONOMOUS_TOPIC "esp32/car/command/autonomous"
+#define MQTT_SENSOR_DISTANCE_TOPIC "esp32/car/sensor/distance"
+#define MQTT_OBSTACLE_TOPIC "esp32/car/obstacle"
+
+// --- Konfigurasi NTP (Waktu) ---
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 7 * 3600;
+const int   daylightOffset_sec = 0;
+
+// --- Konfigurasi Pin Kamera (Model AI Thinker) ---
+#define PWDN_GPIO_NUM 32
+#define RESET_GPIO_NUM -1
+#define XCLK_GPIO_NUM 0
+#define SIOD_GPIO_NUM 26
+#define SIOC_GPIO_NUM 27
+#define Y9_GPIO_NUM 35
+#define Y8_GPIO_NUM 34
+#define Y7_GPIO_NUM 39
+#define Y6_GPIO_NUM 36
+#define Y5_GPIO_NUM 21
+#define Y4_GPIO_NUM 19
+#define Y3_GPIO_NUM 18
+#define Y2_GPIO_NUM 5
+#define VSYNC_GPIO_NUM 25
+#define HREF_GPIO_NUM 23
+#define PCLK_GPIO_NUM 22
+
+// --- BAGIAN 3: EEPROM CONFIGURATION & DISTANCE SETTINGS ---
+
+// EEPROM Memory Layout
+#define EEPROM_SIZE 512
+#define EEPROM_MAGIC_NUMBER 0xABCD
+#define EEPROM_VERSION 1
+
+// EEPROM Addresses
+#define ADDR_MAGIC 0          // 2 bytes - Magic number for validation
+#define ADDR_VERSION 2        // 1 byte - Settings version
+#define ADDR_MIN_DISTANCE 3   // 2 bytes - Minimum distance (cm)
+#define ADDR_SAFE_DISTANCE 5  // 2 bytes - Safe distance (cm)
+#define ADDR_MAX_DISTANCE 7   // 2 bytes - Maximum distance (cm)
+#define ADDR_CHECKSUM 9       // 1 byte - Simple checksum
+
+// Distance Settings Structure
+struct DistanceSettings {
+    uint16_t minDistance;   // Minimum distance in cm (5-300)
+    uint16_t safeDistance;  // Safe distance in cm (5-300)
+    uint16_t maxDistance;   // Maximum distance in cm (5-300)
+};
+
+// Default distance settings (in centimeters)
+DistanceSettings defaultSettings = {
+    .minDistance = 15,   // 15cm - minimum distance for stop/reverse
+    .safeDistance = 30,  // 30cm - safe distance for normal navigation
+    .maxDistance = 100   // 100cm - maximum detection distance
+};
+
+// Current active settings
+DistanceSettings currentSettings;
+
+// --- BAGIAN 4: INISIALISASI OBJEK & VARIABEL GLOBAL ---
+WiFiClientSecure espClient;
+PubSubClient client(espClient);
+
+volatile int speed = 200;
+unsigned long lastFrameTime = 0;
+const long frameInterval = 50;
+unsigned long lastStatusTime = 0;
+const long statusInterval = 10000;
+unsigned long lastDistanceTime = 0;
+const long distanceInterval = 200;
+
+bool isMqttConnectedBefore = false;
+bool autonomousMode = false;
+bool timeConfigured = false;
+long currentDistance = 0;
+long previousDistance = 0;
+
+// --- VARIABEL ENHANCED UNTUK MODE AUTONOMOUS ---
+enum AutonomousState {
+    AUTO_FORWARD,
+    AUTO_OBSTACLE_DETECTED,
+    AUTO_STOPPING,
+    AUTO_BACKING,
+    AUTO_TURNING_LEFT,
+    AUTO_CHECKING_LEFT,
+    AUTO_TURNING_RIGHT,
+    AUTO_CHECKING_RIGHT,
+    AUTO_FINDING_PATH,
+    AUTO_RESUME_FORWARD
+};
+
+AutonomousState autoState = AUTO_FORWARD;
+unsigned long autoStateStartTime = 0;
+unsigned long lastAutonomousLog = 0;
+unsigned long lastObstacleLog = 0;
+bool obstacleDetected = false;
+int turnAttempts = 0;
+const int maxTurnAttempts = 3;
+
+// --- OPTIMASI CAMERA STREAMING ---
+unsigned long lastCameraCleanup = 0;
+const long cameraCleanupInterval = 5000;
+int consecutiveFrameFailures = 0;
+const int maxFrameFailures = 5;
+
+// --- BAGIAN 5: EEPROM FUNCTIONS ---
+
+/**
+ * Calculate simple checksum for settings validation
+ */
+uint8_t calculateChecksum(const DistanceSettings& settings) {
+    uint8_t checksum = 0;
+    checksum ^= (settings.minDistance & 0xFF);
+    checksum ^= (settings.minDistance >> 8);
+    checksum ^= (settings.safeDistance & 0xFF);
+    checksum ^= (settings.safeDistance >> 8);
+    checksum ^= (settings.maxDistance & 0xFF);
+    checksum ^= (settings.maxDistance >> 8);
+    return checksum;
+}
+
+/**
+ * Validate distance settings for safety and logic
+ */
+bool validateDistanceSettings(const DistanceSettings& settings) {
+    // Range validation (5cm - 300cm)
+    if (settings.minDistance < 5 || settings.minDistance > 300) return false;
+    if (settings.safeDistance < 5 || settings.safeDistance > 300) return false;
+    if (settings.maxDistance < 5 || settings.maxDistance > 300) return false;
+    
+    // Logical relationship validation
+    if (settings.minDistance >= settings.safeDistance) return false;
+    if (settings.safeDistance >= settings.maxDistance) return false;
+    
+    // Safety ratio validation
+    if (settings.safeDistance < settings.minDistance * 1.5) return false;
+    if (settings.safeDistance > settings.maxDistance * 0.8) return false;
+    
+    return true;
+}
+
+/**
+ * Auto-correct invalid settings to safe values
+ */
+DistanceSettings autoCorrectSettings(DistanceSettings settings) {
+    // Clamp to valid ranges
+    settings.minDistance = constrain(settings.minDistance, 5, 300);
+    settings.safeDistance = constrain(settings.safeDistance, 5, 300);
+    settings.maxDistance = constrain(settings.maxDistance, 5, 300);
+    
+    // Fix logical relationships
+    if (settings.minDistance >= settings.maxDistance) {
+        settings.maxDistance = settings.minDistance + 20;
+    }
+    
+    if (settings.safeDistance <= settings.minDistance) {
+        settings.safeDistance = settings.minDistance + 10;
+    }
+    
+    if (settings.safeDistance >= settings.maxDistance) {
+        settings.safeDistance = settings.maxDistance - 10;
+    }
+    
+    // Ensure safety ratios
+    if (settings.safeDistance < settings.minDistance * 1.5) {
+        settings.safeDistance = settings.minDistance * 1.5;
+    }
+    
+    if (settings.safeDistance > settings.maxDistance * 0.8) {
+        settings.safeDistance = settings.maxDistance * 0.8;
+    }
+    
+    return settings;
+}
+
+/**
+ * Save distance settings to EEPROM with validation
+ */
+bool saveDistanceSettings(const DistanceSettings& settings) {
+    // Validate settings before saving
+    DistanceSettings validatedSettings = autoCorrectSettings(settings);
+    
+    if (!validateDistanceSettings(validatedSettings)) {
+        logActivity("❌ Settings validation failed, using defaults");
+        validatedSettings = defaultSettings;
+    }
+    
+    // Write magic number and version
+    EEPROM.writeUShort(ADDR_MAGIC, EEPROM_MAGIC_NUMBER);
+    EEPROM.writeByte(ADDR_VERSION, EEPROM_VERSION);
+    
+    // Write settings
+    EEPROM.writeUShort(ADDR_MIN_DISTANCE, validatedSettings.minDistance);
+    EEPROM.writeUShort(ADDR_SAFE_DISTANCE, validatedSettings.safeDistance);
+    EEPROM.writeUShort(ADDR_MAX_DISTANCE, validatedSettings.maxDistance);
+    
+    // Write checksum
+    uint8_t checksum = calculateChecksum(validatedSettings);
+    EEPROM.writeByte(ADDR_CHECKSUM, checksum);
+    
+    // Commit to flash
+    bool success = EEPROM.commit();
+    
+    if (success) {
+        currentSettings = validatedSettings;
+        logActivity("✅ Distance settings saved to EEPROM");
+        logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
+                   String(currentSettings.safeDistance) + "cm, Max: " + 
+                   String(currentSettings.maxDistance) + "cm");
+    } else {
+        logActivity("❌ Failed to save settings to EEPROM");
+    }
+    
+    return success;
+}
+
+/**
+ * Load distance settings from EEPROM with validation
+ */
+bool loadDistanceSettings() {
+    // Check magic number
+    uint16_t magic = EEPROM.readUShort(ADDR_MAGIC);
+    if (magic != EEPROM_MAGIC_NUMBER) {
+        logActivity("⚠️ EEPROM not initialized, using defaults");
+        return false;
+    }
+    
+    // Check version
+    uint8_t version = EEPROM.readByte(ADDR_VERSION);
+    if (version != EEPROM_VERSION) {
+        logActivity("⚠️ EEPROM version mismatch, using defaults");
+        return false;
+    }
+    
+    // Read settings
+    DistanceSettings loadedSettings;
+    loadedSettings.minDistance = EEPROM.readUShort(ADDR_MIN_DISTANCE);
+    loadedSettings.safeDistance = EEPROM.readUShort(ADDR_SAFE_DISTANCE);
+    loadedSettings.maxDistance = EEPROM.readUShort(ADDR_MAX_DISTANCE);
+    
+    // Verify checksum
+    uint8_t storedChecksum = EEPROM.readByte(ADDR_CHECKSUM);
+    uint8_t calculatedChecksum = calculateChecksum(loadedSettings);
+    
+    if (storedChecksum != calculatedChecksum) {
+        logActivity("❌ EEPROM checksum mismatch, data corrupted");
+        return false;
+    }
+    
+    // Validate loaded settings
+    if (!validateDistanceSettings(loadedSettings)) {
+        logActivity("❌ Loaded settings invalid, using defaults");
+        return false;
+    }
+    
+    // Settings are valid, apply them
+    currentSettings = loadedSettings;
+    logActivity("✅ Distance settings loaded from EEPROM");
+    logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
+               String(currentSettings.safeDistance) + "cm, Max: " + 
+               String(currentSettings.maxDistance) + "cm");
+    
+    return true;
+}
+
+/**
+ * Initialize EEPROM and load settings
+ */
+void initializeEEPROM() {
+    logActivity("🔧 Initializing EEPROM...");
+    
+    if (!EEPROM.begin(EEPROM_SIZE)) {
+        logActivity("❌ EEPROM initialization failed!");
+        currentSettings = defaultSettings;
+        return;
+    }
+    
+    // Try to load settings from EEPROM
+    if (!loadDistanceSettings()) {
+        // Failed to load, save defaults
+        logActivity("💾 Saving default settings to EEPROM...");
+        currentSettings = defaultSettings;
+        saveDistanceSettings(currentSettings);
+    }
+    
+    logActivity("✅ EEPROM initialized successfully");
+}
+
+// --- BAGIAN 6: FUNGSI-FUNGSI UTAMA ---
+
+void ensureSerialReady() {
+    if (!Serial) {
+        Serial.begin(115200);
+        delay(500);
+    }
+    while (Serial.available()) {
+        Serial.read();
+    }
+}
+
+void logActivity(const String& message) {
+    ensureSerialReady();
+    
+    unsigned long uptime = millis() / 1000;
+    String timestamp = "[" + String(uptime) + "s] ";
+    String logMessage = timestamp + message;
+    
+    Serial.println(logMessage);
+    Serial.flush();
+    
+    if (client.connected() && client.state() == MQTT_CONNECTED) {
+        client.publish(MQTT_LOG_TOPIC, message.c_str(), false);
+    }
+}
+
+void logObstacle(long distance, const String& action) {
+    String obstacleMessage = "🚨 OBSTACLE! Distance: " + String(distance) + "cm (Threshold: " + 
+                            String(currentSettings.minDistance) + "cm) - Action: " + action;
+    logActivity(obstacleMessage);
+    
+    if (client.connected()) {
+        char obstacleJson[300];
+        snprintf(obstacleJson, sizeof(obstacleJson),
+            "{\"distance\":%ld,\"threshold\":%d,\"action\":\"%s\",\"timestamp\":%lu}",
+            distance, currentSettings.minDistance, action.c_str(), millis()
+        );
+        client.publish(MQTT_OBSTACLE_TOPIC, obstacleJson, false);
+    }
+}
+
+void setupTime() {
+    logActivity("🕐 Memulai sinkronisasi waktu...");
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    logActivity("NTP dikonfigurasi - sinkronisasi background");
+    timeConfigured = true;
+}
+
+// --- MOTOR FUNCTIONS (OPTIMIZED) ---
+void moveForward() { 
+    ledcWrite(PWM_MOTOR_CHANNEL, speed); 
+    digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); 
+    digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW); 
+}
+
+void moveBackward() { 
+    ledcWrite(PWM_MOTOR_CHANNEL, speed); 
+    digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH); 
+    digitalWrite(IN3, LOW); digitalWrite(IN4, HIGH); 
+}
+
+void turnLeft() { 
+    ledcWrite(PWM_MOTOR_CHANNEL, speed); 
+    digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); 
+    digitalWrite(IN3, LOW); digitalWrite(IN4, HIGH); 
+}
+
+void turnRight() { 
+    ledcWrite(PWM_MOTOR_CHANNEL, speed); 
+    digitalWrite(IN1, LOW); digitalWrite(IN2, HIGH); 
+    digitalWrite(IN3, HIGH); digitalWrite(IN4, LOW); 
+}
+
+void stopMotors() { 
+    ledcWrite(PWM_MOTOR_CHANNEL, 0); 
+    digitalWrite(IN1, LOW); digitalWrite(IN2, LOW); 
+    digitalWrite(IN3, LOW); digitalWrite(IN4, LOW); 
+}
+
+void handleCommand(String cmd) {
+    logActivity("CMD: " + cmd);
+    if (cmd == "forward") moveForward();
+    else if (cmd == "backward") moveBackward();
+    else if (cmd == "left") turnLeft();
+    else if (cmd == "right") turnRight();
+    else if (cmd == "stop") stopMotors();
+}
+
+void setupCamera() {
+    logActivity("Starting camera initialization...");
+    
+    camera_config_t config;
+    config.ledc_channel = LEDC_CHANNEL_2;
+    config.ledc_timer = LEDC_TIMER_1;
+    
+    config.pin_d0 = Y2_GPIO_NUM; config.pin_d1 = Y3_GPIO_NUM; config.pin_d2 = Y4_GPIO_NUM;
+    config.pin_d3 = Y5_GPIO_NUM; config.pin_d4 = Y6_GPIO_NUM; config.pin_d5 = Y7_GPIO_NUM;
+    config.pin_d6 = Y8_GPIO_NUM; config.pin_d7 = Y9_GPIO_NUM; config.pin_xclk = XCLK_GPIO_NUM;
+    config.pin_pclk = PCLK_GPIO_NUM; config.pin_vsync = VSYNC_GPIO_NUM; config.pin_href = HREF_GPIO_NUM;
+    config.pin_sscb_sda = SIOD_GPIO_NUM; config.pin_sscb_scl = SIOC_GPIO_NUM;
+    config.pin_pwdn = PWDN_GPIO_NUM; config.pin_reset = RESET_GPIO_NUM;
+    config.xclk_freq_hz = 20000000;
+    config.pixel_format = PIXFORMAT_JPEG;
+
+    config.frame_size = FRAMESIZE_QVGA;
+    config.jpeg_quality = 15;
+    config.fb_count = 2;
+    
+    logActivity("Camera config set, initializing...");
+    esp_err_t err = esp_camera_init(&config);
+    if (err != ESP_OK) {
+        logActivity("Camera init failed with error: " + String(err));
+        logActivity("Restarting system...");
+        delay(3000);
+        ESP.restart();
+    }
+    
+    sensor_t *s = esp_camera_sensor_get();
+    if (s) {
+        logActivity("Optimizing camera sensor settings...");
+        s->set_brightness(s, 1);
+        s->set_contrast(s, 1);
+        s->set_saturation(s, 0);
+        s->set_special_effect(s, 0);
+        s->set_whitebal(s, 1);
+        s->set_awb_gain(s, 1);
+        s->set_wb_mode(s, 0);
+        s->set_exposure_ctrl(s, 1);
+        s->set_aec2(s, 0);
+        s->set_ae_level(s, 0);
+        s->set_aec_value(s, 300);
+        s->set_gain_ctrl(s, 1);
+        s->set_agc_gain(s, 0);
+        s->set_gainceiling(s, (gainceiling_t)0);
+        s->set_bpc(s, 0);
+        s->set_wpc(s, 1);
+        s->set_raw_gma(s, 1);
+        s->set_lenc(s, 1);
+        s->set_hmirror(s, 0);
+        s->set_vflip(s, 0);
+        s->set_dcw(s, 1);
+        s->set_colorbar(s, 0);
+        logActivity("Camera sensor optimized");
+    }
+    
+    logActivity("Camera ready!");
+}
+
+void publishStatus() {
+    char jsonPayload[400];
+    snprintf(jsonPayload, sizeof(jsonPayload),
+        "{\"uptime\":%lu,\"rssi\":%d,\"heap\":%u,\"auto\":%s,\"dist\":%ld,\"state\":%d,\"obstacle\":%s,\"attempts\":%d,\"settings\":{\"min\":%d,\"safe\":%d,\"max\":%d}}",
+        millis()/1000, WiFi.RSSI(), ESP.getFreeHeap(), 
+        autonomousMode ? "true" : "false", currentDistance, autoState,
+        obstacleDetected ? "true" : "false", turnAttempts,
+        currentSettings.minDistance, currentSettings.safeDistance, currentSettings.maxDistance
+    );
+    
+    client.publish(MQTT_STATUS_TOPIC, jsonPayload, false);
+}
+
+// OPTIMIZED DISTANCE READING
+long getDistance() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    
+    long duration = pulseIn(ECHO_PIN, HIGH, 20000);
+    if (duration == 0) return 999;
+    
+    long distance = duration / 2 / 29.1;
+    return (distance > 0 && distance < 300) ? distance : 999;
+}
+
+// ENHANCED AUTONOMOUS MODE WITH ADJUSTABLE DISTANCE SETTINGS
+void runAutonomousLogic() {
+    unsigned long currentTime = millis();
+    
+    // Use current settings for obstacle detection
+    int obstacleThreshold = currentSettings.minDistance;
+    int criticalDistance = max(5, obstacleThreshold - 5); // 5cm less than threshold, minimum 5cm
+    
+    // Check for obstacles using current settings
+    if (currentDistance <= obstacleThreshold && currentDistance > 0) {
+        if (!obstacleDetected) {
+            obstacleDetected = true;
+            logObstacle(currentDistance, "First Detection");
+        }
+        
+        if (currentTime - lastObstacleLog > 2000) {
+            logObstacle(currentDistance, "Continuous Detection");
+            lastObstacleLog = currentTime;
+        }
+    } else if (currentDistance > obstacleThreshold) {
+        if (obstacleDetected) {
+            obstacleDetected = false;
+            logActivity("✅ Path Clear - Distance: " + String(currentDistance) + "cm (Threshold: " + String(obstacleThreshold) + "cm)");
+        }
+    }
+    
+    if (currentTime - lastAutonomousLog > 3000) {
+        logActivity("AUTO MODE - Distance: " + String(currentDistance) + "cm - Threshold: " + String(obstacleThreshold) + "cm - State: " + getStateString(autoState));
+        lastAutonomousLog = currentTime;
+    }
+    
+    switch (autoState) {
+        case AUTO_FORWARD:
+            if (currentDistance >= obstacleThreshold || currentDistance == 999) {
+                moveForward();
+            } else {
+                logObstacle(currentDistance, "Stopping Forward Movement");
+                autoState = AUTO_OBSTACLE_DETECTED;
+                autoStateStartTime = currentTime;
+            }
+            break;
+            
+        case AUTO_OBSTACLE_DETECTED:
+            stopMotors();
+            logObstacle(currentDistance, "Obstacle Confirmed - Initiating Avoidance");
+            autoState = AUTO_STOPPING;
+            autoStateStartTime = currentTime;
+            break;
+            
+        case AUTO_STOPPING:
+            stopMotors();
+            if (currentTime - autoStateStartTime >= 200) {
+                if (currentDistance <= criticalDistance) {
+                    logObstacle(currentDistance, "Critical Distance - Backing Up");
+                    autoState = AUTO_BACKING;
+                } else {
+                    logObstacle(currentDistance, "Searching Alternative Path");
+                    autoState = AUTO_FINDING_PATH;
+                }
+                autoStateStartTime = currentTime;
+                turnAttempts = 0;
+            }
+            break;
+            
+        case AUTO_BACKING:
+            moveBackward();
+            if (currentTime - autoStateStartTime >= 600) {
+                logActivity("Backing completed - Starting path search");
+                autoState = AUTO_FINDING_PATH;
+                autoStateStartTime = currentTime;
+                turnAttempts = 0;
+            }
+            break;
+            
+        case AUTO_FINDING_PATH:
+            stopMotors();
+            if (currentTime - autoStateStartTime >= 100) {
+                logActivity("🔄 Attempting to find alternative path - Try: " + String(turnAttempts + 1));
+                autoState = AUTO_TURNING_LEFT;
+                autoStateStartTime = currentTime;
+            }
+            break;
+            
+        case AUTO_TURNING_LEFT:
+            turnLeft();
+            if (currentTime - autoStateStartTime >= 800) {
+                logActivity("Left turn completed - Checking path");
+                autoState = AUTO_CHECKING_LEFT;
+                autoStateStartTime = currentTime;
+            }
+            break;
+            
+        case AUTO_CHECKING_LEFT:
+            stopMotors();
+            if (currentTime - autoStateStartTime >= 300) {
+                if (currentDistance >= obstacleThreshold || currentDistance == 999) {
+                    logActivity("✅ Left path clear - Resuming forward");
+                    autoState = AUTO_RESUME_FORWARD;
+                    turnAttempts = 0;
+                } else {
+                    logActivity("❌ Left path blocked - Trying right");
+                    autoState = AUTO_TURNING_RIGHT;
+                    autoStateStartTime = currentTime;
+                }
+            }
+            break;
+            
+        case AUTO_TURNING_RIGHT:
+            turnRight();
+            if (currentTime - autoStateStartTime >= 1600) {
+                logActivity("Right turn completed - Checking path");
+                autoState = AUTO_CHECKING_RIGHT;
+                autoStateStartTime = currentTime;
+            }
+            break;
+            
+        case AUTO_CHECKING_RIGHT:
+            stopMotors();
+            if (currentTime - autoStateStartTime >= 300) {
+                if (currentDistance >= obstacleThreshold || currentDistance == 999) {
+                    logActivity("✅ Right path clear - Resuming forward");
+                    autoState = AUTO_RESUME_FORWARD;
+                    turnAttempts = 0;
+                } else {
+                    turnAttempts++;
+                    if (turnAttempts < maxTurnAttempts) {
+                        logActivity("❌ Right path blocked - Backing up and retrying");
+                        autoState = AUTO_BACKING;
+                        autoStateStartTime = currentTime;
+                    } else {
+                        logActivity("🔄 Max attempts reached - Waiting for path to clear");
+                        autoState = AUTO_STOPPING;
+                        autoStateStartTime = currentTime;
+                        turnAttempts = 0;
+                    }
+                }
+            }
+            break;
+            
+        case AUTO_RESUME_FORWARD:
+            if (currentDistance >= obstacleThreshold || currentDistance == 999) {
+                logActivity("🚀 Resuming forward movement");
+                autoState = AUTO_FORWARD;
+                moveForward();
+            } else {
+                logActivity("Path blocked again - Restarting avoidance");
+                autoState = AUTO_OBSTACLE_DETECTED;
+                autoStateStartTime = currentTime;
+            }
+            break;
+    }
+}
+
+String getStateString(AutonomousState state) {
+    switch (state) {
+        case AUTO_FORWARD: return "FORWARD";
+        case AUTO_OBSTACLE_DETECTED: return "OBSTACLE_DETECTED";
+        case AUTO_STOPPING: return "STOPPING";
+        case AUTO_BACKING: return "BACKING";
+        case AUTO_TURNING_LEFT: return "TURNING_LEFT";
+        case AUTO_CHECKING_LEFT: return "CHECKING_LEFT";
+        case AUTO_TURNING_RIGHT: return "TURNING_RIGHT";
+        case AUTO_CHECKING_RIGHT: return "CHECKING_RIGHT";
+        case AUTO_FINDING_PATH: return "FINDING_PATH";
+        case AUTO_RESUME_FORWARD: return "RESUME_FORWARD";
+        default: return "UNKNOWN";
+    }
+}
+
+void signalOnline() {
+    for (int i = 0; i < 2; i++) {
+        ledcWrite(PWM_FLASH_CHANNEL, 100);
+        delay(100);
+        ledcWrite(PWM_FLASH_CHANNEL, 0);
+        delay(100);
+    }
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+    String message;
+    for (int i = 0; i < length; i++) { 
+        message += (char)payload[i]; 
+    }
+    String topicStr = String(topic);
+    
+    // Handle distance settings configuration
+    if (topicStr == MQTT_DISTANCE_SETTINGS_TOPIC) {
+        logActivity("📐 Received distance settings: " + message);
+        
+        // Parse JSON payload
+        DynamicJsonDocument doc(512);
+        DeserializationError error = deserializeJson(doc, message);
+        
+        if (error) {
+            logActivity("❌ JSON parsing failed: " + String(error.c_str()));
+            return;
+        }
+        
+        // Extract settings from JSON
+        DistanceSettings newSettings;
+        newSettings.minDistance = doc["minDistance"] | currentSettings.minDistance;
+        newSettings.safeDistance = doc["safeDistance"] | currentSettings.safeDistance;
+        newSettings.maxDistance = doc["maxDistance"] | currentSettings.maxDistance;
+        
+        // Validate and save new settings
+        if (validateDistanceSettings(newSettings)) {
+            if (saveDistanceSettings(newSettings)) {
+                logActivity("✅ Distance settings updated and saved");
+                logActivity("New settings - Min: " + String(currentSettings.minDistance) + 
+                           "cm, Safe: " + String(currentSettings.safeDistance) + 
+                           "cm, Max: " + String(currentSettings.maxDistance) + "cm");
+                
+                // Send confirmation back to web interface
+                char confirmJson[200];
+                snprintf(confirmJson, sizeof(confirmJson),
+                    "{\"status\":\"success\",\"min\":%d,\"safe\":%d,\"max\":%d,\"timestamp\":%lu}",
+                    currentSettings.minDistance, currentSettings.safeDistance, 
+                    currentSettings.maxDistance, millis()
+                );
+                client.publish(MQTT_STATUS_TOPIC, confirmJson, false);
+            } else {
+                logActivity("❌ Failed to save distance settings");
+            }
+        } else {
+            logActivity("❌ Invalid distance settings received");
+        }
+        return;
+    }
+    
+    if (topicStr == MQTT_COMMAND_AUTONOMOUS_TOPIC) {
+        if (message == "on") {
+            logActivity("🤖 AUTONOMOUS MODE ACTIVATED");
+            logActivity("Using distance settings - Min: " + String(currentSettings.minDistance) + 
+                       "cm, Safe: " + String(currentSettings.safeDistance) + 
+                       "cm, Max: " + String(currentSettings.maxDistance) + "cm");
+            autonomousMode = true;
+            autoState = AUTO_FORWARD;
+            autoStateStartTime = millis();
+            obstacleDetected = false;
+            turnAttempts = 0;
+        } else if (message == "off") {
+            logActivity("🛑 AUTONOMOUS MODE DEACTIVATED");
+            autonomousMode = false;
+            stopMotors();
+            autoState = AUTO_FORWARD;
+            obstacleDetected = false;
+            turnAttempts = 0;
+        }
+        return;
+    }
+
+    if (!autonomousMode) {
+        if (topicStr == MQTT_CONTROL_MOVE_TOPIC) { 
+            handleCommand(message); 
+        } 
+        else if (topicStr == MQTT_CONTROL_SPEED_TOPIC) {
+            speed = constrain(message.toInt(), 50, 255);
+            if (ledcRead(PWM_MOTOR_CHANNEL) > 0) { 
+                ledcWrite(PWM_MOTOR_CHANNEL, speed); 
+            }
+        } 
+        else if (topicStr == MQTT_CONTROL_FLASH_TOPIC) {
+            int flashValue = constrain(message.toInt(), 0, 255);
+            ledcWrite(PWM_FLASH_CHANNEL, flashValue);
+        }
+    }
+}
+
+void reconnect() {
+    static unsigned long lastReconnectAttempt = 0;
+    
+    if (millis() - lastReconnectAttempt < 3000) return;
+    lastReconnectAttempt = millis();
+    
+    logActivity("Connecting to MQTT broker...");
+    
+    String clientId = "ESP32-Car-" + String(random(0xffff), HEX);
+    if (client.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
+        logActivity("MQTT Connected!");
+        logActivity("Client ID: " + clientId);
+        isMqttConnectedBefore = true;
+        
+        logActivity("Subscribing to topics...");
+        client.subscribe(MQTT_CONTROL_MOVE_TOPIC);
+        client.subscribe(MQTT_CONTROL_SPEED_TOPIC);
+        client.subscribe(MQTT_CONTROL_FLASH_TOPIC);
+        client.subscribe(MQTT_COMMAND_AUTONOMOUS_TOPIC);
+        client.subscribe(MQTT_DISTANCE_SETTINGS_TOPIC); // Subscribe to distance settings
+        logActivity("Subscribed to all topics");
+        
+        // Send current settings to web interface
+        char settingsJson[200];
+        snprintf(settingsJson, sizeof(settingsJson),
+            "{\"type\":\"settings\",\"min\":%d,\"safe\":%d,\"max\":%d,\"timestamp\":%lu}",
+            currentSettings.minDistance, currentSettings.safeDistance, 
+            currentSettings.maxDistance, millis()
+        );
+        client.publish(MQTT_STATUS_TOPIC, settingsJson, false);
+        
+        signalOnline();
+    } else {
+        logActivity("MQTT connection failed with code: " + String(client.state()));
+    }
+}
+
+// --- BAGIAN 7: SETUP ---
+void setup() {
+    Serial.begin(115200);
+    delay(2000);
+    
+    while (Serial.available()) {
+        Serial.read();
+    }
+    
+    Serial.println();
+    Serial.println("=====================================");
+    Serial.println("  ESP32 RC Car v4.0 - Enhanced      ");
+    Serial.println("   Adjustable Distance Control       ");
+    Serial.println("=====================================");
+    Serial.println();
+    
+    logActivity("System booting...");
+    logActivity("Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
+    
+    // Initialize EEPROM and load distance settings
+    initializeEEPROM();
+    
+    // PWM Setup
+    logActivity("Initializing PWM...");
+    ledcSetup(PWM_MOTOR_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+    ledcAttachPin(MOTOR_EN, PWM_MOTOR_CHANNEL);
+    ledcSetup(PWM_FLASH_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
+    ledcAttachPin(FLASH_PIN, PWM_FLASH_CHANNEL);
+    logActivity("PWM initialized");
+    
+    // GPIO Setup
+    logActivity("Setting up GPIO pins...");
+    pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
+    pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
+    pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
+    
+    digitalWrite(IN1, LOW); digitalWrite(IN2, LOW);
+    digitalWrite(IN3, LOW); digitalWrite(IN4, LOW);
+    ledcWrite(PWM_MOTOR_CHANNEL, 0);
+    ledcWrite(PWM_FLASH_CHANNEL, 0);
+    logActivity("GPIO pins configured");
+    
+    // Camera Setup
+    logActivity("Initializing camera...");
+    setupCamera();
+    
+    // WiFi Setup
+    logActivity("Connecting to WiFi...");
+    for (auto const& cred : wifiList) { 
+        wifiMulti.addAP(cred.ssid, cred.password); 
+        logActivity("Added WiFi: " + String(cred.ssid));
+    }
+    
+    if(wifiMulti.run(15000) == WL_CONNECTED) {
+        logActivity("WiFi Connected!");
+        logActivity("SSID: " + WiFi.SSID());
+        logActivity("IP Address: " + WiFi.localIP().toString());
+        logActivity("Signal: " + String(WiFi.RSSI()) + " dBm");
+    } else {
+        logActivity("WiFi connection failed!");
+        logActivity("Restarting in 5 seconds...");
+        delay(5000);
+        ESP.restart();
+    }
+    
+    // MQTT Setup
+    logActivity("Configuring MQTT...");
+    espClient.setInsecure();
+    client.setBufferSize(24000);
+    client.setServer(mqtt_server, mqtt_port);
+    client.setCallback(callback);
+    client.setKeepAlive(30);
+    
+    logActivity("Setup complete!");
+    logActivity("Active distance settings:");
+    logActivity("- Minimum distance: " + String(currentSettings.minDistance) + "cm");
+    logActivity("- Safe distance: " + String(currentSettings.safeDistance) + "cm");
+    logActivity("- Maximum distance: " + String(currentSettings.maxDistance) + "cm");
+    logActivity("Waiting for MQTT connection...");
+    
+    Serial.println("=====================================");
+    Serial.println("         SYSTEM READY");
+    Serial.println("=====================================");
+    Serial.println();
+}
+
+// --- BAGIAN 8: MAIN LOOP ---
+void loop() {
+    // WiFi check
+    if (WiFi.status() != WL_CONNECTED) {
+        if(wifiMulti.run(5000) != WL_CONNECTED) {
+            ESP.restart();
+        }
+    }
+    
+    // MQTT connection
+    if (!client.connected()) {
+        reconnect();
+    }
+    client.loop();
+    
+    // Distance reading with current settings
+    if (millis() - lastDistanceTime > distanceInterval) {
+        previousDistance = currentDistance;
+        currentDistance = getDistance();
+        
+        if (currentDistance < 400 && client.connected()) {
+            char distStr[8];
+            dtostrf(currentDistance, 3, 0, distStr);
+            client.publish(MQTT_SENSOR_DISTANCE_TOPIC, distStr, false);
+        }
+        lastDistanceTime = millis();
+    }
+    
+    // Autonomous mode with adjustable distance settings
+    if (autonomousMode) {
+        runAutonomousLogic();
+    }
+    
+    // Camera streaming
+    if (millis() - lastFrameTime > frameInterval) {
+        if (client.connected()) {
+            camera_fb_t* fb = esp_camera_fb_get();
+            if (fb && fb->len > 0 && fb->len < 20000) {
+                bool success = client.publish(MQTT_CAM_STREAM_TOPIC, fb->buf, fb->len, false);
+                if (success) {
+                    consecutiveFrameFailures = 0;
+                } else {
+                    consecutiveFrameFailures++;
+                    if (consecutiveFrameFailures > maxFrameFailures) {
+                        logActivity("Camera stream issues, restarting...");
+                        ESP.restart();
+                    }
+                }
+                esp_camera_fb_return(fb);
+            } else {
+                if (fb) esp_camera_fb_return(fb);
+                consecutiveFrameFailures++;
+            }
+        }
+        lastFrameTime = millis();
+    }
+    
+    // Status update
+    if (millis() - lastStatusTime > statusInterval) {
+        if (client.connected()) {
+            publishStatus();
+        }
+        lastStatusTime = millis();
+    }
+    
+    delay(1);
+}

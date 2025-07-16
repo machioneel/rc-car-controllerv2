@@ -134,7 +134,7 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
         
         {/* Quick status info */}
         <div className="mt-2 text-sm text-gray-400">
-          Min: {settings.minDistance}m | Safe: {settings.safeDistance}m | Max: {settings.maxDistance}m
+          Min: {settings.minDistance}cm | Safe: {settings.safeDistance}cm | Max: {settings.maxDistance}cm
         </div>
       </div>
 
@@ -177,15 +177,15 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
               <div className="relative">
                 <input
                   type="number"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
+                  min="5"
+                  max="300"
+                  step="1"
                   value={settings.minDistance}
                   onChange={(e) => handleInputChange('minDistance', e.target.value)}
                   className={`w-full px-3 py-2 rounded-lg border transition-all text-white placeholder-gray-400 ${getInputStyling('minDistance')}`}
-                  placeholder="0.3"
+                  placeholder="15"
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">m</span>
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">cm</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Jarak untuk berhenti/mundur</p>
             </div>
@@ -199,15 +199,15 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
               <div className="relative">
                 <input
                   type="number"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
+                  min="5"
+                  max="300"
+                  step="1"
                   value={settings.safeDistance}
                   onChange={(e) => handleInputChange('safeDistance', e.target.value)}
                   className={`w-full px-3 py-2 rounded-lg border transition-all text-white placeholder-gray-400 ${getInputStyling('safeDistance')}`}
-                  placeholder="1.0"
+                  placeholder="30"
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">m</span>
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">cm</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Jarak untuk navigasi normal</p>
             </div>
@@ -221,15 +221,15 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
               <div className="relative">
                 <input
                   type="number"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
+                  min="5"
+                  max="300"
+                  step="1"
                   value={settings.maxDistance}
                   onChange={(e) => handleInputChange('maxDistance', e.target.value)}
                   className={`w-full px-3 py-2 rounded-lg border transition-all text-white placeholder-gray-400 ${getInputStyling('maxDistance')}`}
-                  placeholder="2.0"
+                  placeholder="100"
                 />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">m</span>
+                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">cm</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Jarak deteksi maksimum</p>
             </div>
@@ -271,10 +271,10 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
             
             {/* Legend */}
             <div className="flex justify-between mt-2 text-xs text-gray-400">
-              <span>0m</span>
-              <span>{settings.minDistance}m</span>
-              <span>{settings.safeDistance}m</span>
-              <span>{settings.maxDistance}m</span>
+              <span>0cm</span>
+              <span>{settings.minDistance}cm</span>
+              <span>{settings.safeDistance}cm</span>
+              <span>{settings.maxDistance}cm</span>
             </div>
           </div>
 

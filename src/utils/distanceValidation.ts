@@ -1,14 +1,14 @@
 import { DistanceSettings, DISTANCE_CONSTRAINTS, ValidationResult } from '../types/settings';
 
 // ===================================================================
-// DISTANCE SETTINGS VALIDATION UTILITIES
+// DISTANCE SETTINGS VALIDATION UTILITIES (Centimeters)
 // ===================================================================
 
 /**
- * Validasi komprehensif untuk distance settings
+ * Validasi komprehensif untuk distance settings dalam centimeter
  * 
  * Algoritma validasi:
- * 1. Validasi range absolut (0.1m - 10m)
+ * 1. Validasi range absolut (5cm - 300cm)
  * 2. Validasi relasi antar jarak (min < safe < max)
  * 3. Validasi rasio keamanan
  * 4. Return hasil validasi dengan error messages
@@ -23,15 +23,15 @@ export const validateDistanceSettings = (settings: DistanceSettings): Validation
 
   // Validasi range absolut
   if (minDistance < MIN_ALLOWED || minDistance > MAX_ALLOWED) {
-    errors.push(`Jarak minimum harus antara ${MIN_ALLOWED}m - ${MAX_ALLOWED}m`);
+    errors.push(`Jarak minimum harus antara ${MIN_ALLOWED}cm - ${MAX_ALLOWED}cm`);
   }
 
   if (maxDistance < MIN_ALLOWED || maxDistance > MAX_ALLOWED) {
-    errors.push(`Jarak maksimum harus antara ${MIN_ALLOWED}m - ${MAX_ALLOWED}m`);
+    errors.push(`Jarak maksimum harus antara ${MIN_ALLOWED}cm - ${MAX_ALLOWED}cm`);
   }
 
   if (safeDistance < MIN_ALLOWED || safeDistance > MAX_ALLOWED) {
-    errors.push(`Jarak aman harus antara ${MIN_ALLOWED}m - ${MAX_ALLOWED}m`);
+    errors.push(`Jarak aman harus antara ${MIN_ALLOWED}cm - ${MAX_ALLOWED}cm`);
   }
 
   // Validasi relasi antar jarak
@@ -49,11 +49,11 @@ export const validateDistanceSettings = (settings: DistanceSettings): Validation
 
   // Validasi rasio keamanan
   if (safeDistance < minDistance * MIN_SAFE_RATIO) {
-    errors.push(`Jarak aman harus minimal ${MIN_SAFE_RATIO}x jarak minimum (${(minDistance * MIN_SAFE_RATIO).toFixed(1)}m)`);
+    errors.push(`Jarak aman harus minimal ${MIN_SAFE_RATIO}x jarak minimum (${Math.round(minDistance * MIN_SAFE_RATIO)}cm)`);
   }
 
   if (safeDistance > maxDistance * MAX_SAFE_RATIO) {
-    errors.push(`Jarak aman harus maksimal ${MAX_SAFE_RATIO}x jarak maksimum (${(maxDistance * MAX_SAFE_RATIO).toFixed(1)}m)`);
+    errors.push(`Jarak aman harus maksimal ${MAX_SAFE_RATIO}x jarak maksimum (${Math.round(maxDistance * MAX_SAFE_RATIO)}cm)`);
   }
 
   return {
@@ -89,15 +89,15 @@ export const autoCorrectSettings = (settings: DistanceSettings): DistanceSetting
 
   // Auto-correct relasi
   if (minDistance >= maxDistance) {
-    maxDistance = minDistance + 0.5; // Tambah 50cm
+    maxDistance = minDistance + 20; // Tambah 20cm
   }
 
   if (safeDistance <= minDistance) {
-    safeDistance = minDistance + 0.2; // Tambah 20cm
+    safeDistance = minDistance + 10; // Tambah 10cm
   }
 
   if (safeDistance >= maxDistance) {
-    safeDistance = maxDistance - 0.2; // Kurang 20cm
+    safeDistance = maxDistance - 10; // Kurang 10cm
   }
 
   return { minDistance, maxDistance, safeDistance };

@@ -289,7 +289,7 @@ const RCCarController: React.FC = () => {
       publish(MQTT_TOPICS.DISTANCE_SETTINGS, settingsPayload);
       
       // Log perubahan
-      handleLogMessage(`[WEB] Distance settings updated: Min=${settings.minDistance}m, Safe=${settings.safeDistance}m, Max=${settings.maxDistance}m`);
+      handleLogMessage(`[WEB] Distance settings updated: Min=${settings.minDistance}cm, Safe=${settings.safeDistance}cm, Max=${settings.maxDistance}cm`);
     }
   }, [isConnected, publish, handleLogMessage]);
 
