@@ -134,7 +134,7 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
         
         {/* Quick status info */}
         <div className="mt-2 text-sm text-gray-400">
-          Min: {settings.minDistance}cm | Safe: {settings.safeDistance}cm | Max: {settings.maxDistance}cm
+          Min: {settings.minDistance}cm | Safe: {settings.safeDistance}cm
         </div>
       </div>
 
@@ -166,7 +166,7 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
           {/* =====================================================
               DISTANCE INPUT FIELDS
               ===================================================== */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             {/* Minimum Distance */}
             <div>
@@ -211,28 +211,6 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
               </div>
               <p className="text-xs text-gray-500 mt-1">Jarak untuk navigasi normal</p>
             </div>
-
-            {/* Maximum Distance */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                <Ruler className="w-4 h-4 text-blue-500 mr-1" />
-                Jarak Maksimum
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="5"
-                  max="300"
-                  step="1"
-                  value={settings.maxDistance}
-                  onChange={(e) => handleInputChange('maxDistance', e.target.value)}
-                  className={`w-full px-3 py-2 rounded-lg border transition-all text-white placeholder-gray-400 ${getInputStyling('maxDistance')}`}
-                  placeholder="100"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">cm</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Jarak deteksi maksimum</p>
-            </div>
           </div>
 
           {/* =====================================================
@@ -240,41 +218,32 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
               ===================================================== */}
           <div className="bg-gray-900/50 rounded-lg p-4">
             <h4 className="text-sm font-medium text-gray-300 mb-3">Visualisasi Jarak</h4>
-            <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden">
+            <div className="relative h-8 bg-gray-700 rounded-lg overflow-hidden" style={{ maxWidth: '200px' }}>
               {/* Distance zones */}
               <div 
                 className="absolute left-0 top-0 h-full bg-red-500/30 border-r-2 border-red-500"
-                style={{ width: `${(settings.minDistance / settings.maxDistance) * 100}%` }}
+                style={{ width: `${(settings.minDistance / settings.safeDistance) * 50}%` }}
               />
               <div 
-                className="absolute top-0 h-full bg-green-500/30 border-r-2 border-green-500"
+                className="absolute top-0 h-full bg-green-500/30"
                 style={{ 
-                  left: `${(settings.minDistance / settings.maxDistance) * 100}%`,
-                  width: `${((settings.safeDistance - settings.minDistance) / settings.maxDistance) * 100}%`
-                }}
-              />
-              <div 
-                className="absolute top-0 h-full bg-blue-500/30"
-                style={{ 
-                  left: `${(settings.safeDistance / settings.maxDistance) * 100}%`,
-                  width: `${((settings.maxDistance - settings.safeDistance) / settings.maxDistance) * 100}%`
+                  left: `${(settings.minDistance / settings.safeDistance) * 50}%`,
+                  width: `${50 - (settings.minDistance / settings.safeDistance) * 50}%`
                 }}
               />
               
               {/* Labels */}
-              <div className="absolute inset-0 flex items-center justify-between px-2 text-xs font-medium">
+              <div className="absolute inset-0 flex items-center justify-around px-2 text-xs font-medium">
                 <span className="text-red-300">STOP</span>
                 <span className="text-green-300">SAFE</span>
-                <span className="text-blue-300">DETECT</span>
               </div>
             </div>
             
             {/* Legend */}
-            <div className="flex justify-between mt-2 text-xs text-gray-400">
+            <div className="flex justify-between mt-2 text-xs text-gray-400" style={{ maxWidth: '200px' }}>
               <span>0cm</span>
               <span>{settings.minDistance}cm</span>
               <span>{settings.safeDistance}cm</span>
-              <span>{settings.maxDistance}cm</span>
             </div>
           </div>
 

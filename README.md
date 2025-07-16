@@ -146,8 +146,7 @@ src/
 1. Klik panel "Pengaturan Jarak" untuk membuka konfigurasi
 2. Atur tiga parameter jarak:
    - **Jarak Minimum**: Jarak untuk berhenti/mundur (default: 15cm)
-   - **Jarak Aman**: Jarak untuk navigasi normal (default: 30cm)  
-   - **Jarak Maksimum**: Jarak deteksi maksimum (default: 100cm)
+   - **Jarak Aman**: Jarak untuk navigasi normal (default: 30cm)
 3. Sistem akan memvalidasi input secara real-time
 4. Klik "Simpan Pengaturan" untuk menerapkan perubahan
 5. Pengaturan akan tersimpan dan bertahan setelah restart
@@ -161,7 +160,7 @@ Aplikasi menggunakan topik MQTT berikut untuk komunikasi dengan ESP32:
 | `esp32/car/control/move` | Kontrol pergerakan | `forward`, `backward`, `left`, `right`, `stop` |
 | `esp32/car/control/speed` | Kontrol kecepatan | `100-255` (integer) |
 | `esp32/car/control/flash` | Kontrol LED flash | `0-255` (integer) |
-| `esp32/car/config/distance` | Pengaturan jarak autonomous | JSON object dengan minDistance, maxDistance, safeDistance (dalam cm) |
+| `esp32/car/config/distance` | Pengaturan jarak autonomous | JSON object dengan minDistance, safeDistance (dalam cm) |
 | `esp32/car/command/autonomous` | Mode autonomous | `on`, `off` |
 | `esp32/car/status` | Status mobil | JSON status |
 | `esp32/cam/stream` | Stream kamera | Binary image data |

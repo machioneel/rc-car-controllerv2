@@ -100,14 +100,12 @@ const int   daylightOffset_sec = 0;
 struct DistanceSettings {
     uint16_t minDistance;   // Minimum distance in cm (5-300)
     uint16_t safeDistance;  // Safe distance in cm (5-300)
-    uint16_t maxDistance;   // Maximum distance in cm (5-300)
 };
 
 // Default distance settings (in centimeters)
 DistanceSettings defaultSettings = {
     .minDistance = 15,   // 15cm - minimum distance for stop/reverse
     .safeDistance = 30,  // 30cm - safe distance for normal navigation
-    .maxDistance = 100   // 100cm - maximum detection distance
 };
 
 // Current active settings
@@ -170,8 +168,6 @@ uint8_t calculateChecksum(const DistanceSettings& settings) {
     checksum ^= (settings.minDistance >> 8);
     checksum ^= (settings.safeDistance & 0xFF);
     checksum ^= (settings.safeDistance >> 8);
-    checksum ^= (settings.maxDistance & 0xFF);
-    checksum ^= (settings.maxDistance >> 8);
     return checksum;
 }
 
@@ -182,15 +178,12 @@ bool validateDistanceSettings(const DistanceSettings& settings) {
     // Range validation (5cm - 300cm)
     if (settings.minDistance < 5 || settings.minDistance > 300) return false;
     if (settings.safeDistance < 5 || settings.safeDistance > 300) return false;
-    if (settings.maxDistance < 5 || settings.maxDistance > 300) return false;
     
     // Logical relationship validation
     if (settings.minDistance >= settings.safeDistance) return false;
-    if (settings.safeDistance >= settings.maxDistance) return false;
     
     // Safety ratio validation
     if (settings.safeDistance < settings.minDistance * 1.5) return false;
-    if (settings.safeDistance > settings.maxDistance * 0.8) return false;
     
     return true;
 }
@@ -202,28 +195,15 @@ DistanceSettings autoCorrectSettings(DistanceSettings settings) {
     // Clamp to valid ranges
     settings.minDistance = constrain(settings.minDistance, 5, 300);
     settings.safeDistance = constrain(settings.safeDistance, 5, 300);
-    settings.maxDistance = constrain(settings.maxDistance, 5, 300);
     
-    // Fix logical relationships
-    if (settings.minDistance >= settings.maxDistance) {
-        settings.maxDistance = settings.minDistance + 20;
-    }
-    
+    // Fix logical relationship - ensure safe distance is greater than minimum
     if (settings.safeDistance <= settings.minDistance) {
         settings.safeDistance = settings.minDistance + 10;
-    }
-    
-    if (settings.safeDistance >= settings.maxDistance) {
-        settings.safeDistance = settings.maxDistance - 10;
     }
     
     // Ensure safety ratios
     if (settings.safeDistance < settings.minDistance * 1.5) {
         settings.safeDistance = settings.minDistance * 1.5;
-    }
-    
-    if (settings.safeDistance > settings.maxDistance * 0.8) {
-        settings.safeDistance = settings.maxDistance * 0.8;
     }
     
     return settings;
@@ -261,8 +241,7 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
         currentSettings = validatedSettings;
         logActivity("✅ Distance settings saved to EEPROM");
         logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
-                   String(currentSettings.safeDistance) + "cm, Max: " + 
-                   String(currentSettings.maxDistance) + "cm");
+                   String(currentSettings.safeDistance) + "cm");
     } else {
         logActivity("❌ Failed to save settings to EEPROM");
     }
@@ -292,7 +271,6 @@ bool loadDistanceSettings() {
     DistanceSettings loadedSettings;
     loadedSettings.minDistance = EEPROM.readUShort(ADDR_MIN_DISTANCE);
     loadedSettings.safeDistance = EEPROM.readUShort(ADDR_SAFE_DISTANCE);
-    loadedSettings.maxDistance = EEPROM.readUShort(ADDR_MAX_DISTANCE);
     
     // Verify checksum
     uint8_t storedChecksum = EEPROM.readByte(ADDR_CHECKSUM);
@@ -313,8 +291,7 @@ bool loadDistanceSettings() {
     currentSettings = loadedSettings;
     logActivity("✅ Distance settings loaded from EEPROM");
     logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
-               String(currentSettings.safeDistance) + "cm, Max: " + 
-               String(currentSettings.maxDistance) + "cm");
+               String(currentSettings.safeDistance) + "cm");
     
     return true;
 }
@@ -494,11 +471,11 @@ void setupCamera() {
 void publishStatus() {
     char jsonPayload[400];
     snprintf(jsonPayload, sizeof(jsonPayload),
-        "{\"uptime\":%lu,\"rssi\":%d,\"heap\":%u,\"auto\":%s,\"dist\":%ld,\"state\":%d,\"obstacle\":%s,\"attempts\":%d,\"settings\":{\"min\":%d,\"safe\":%d,\"max\":%d}}",
+        "{\"uptime\":%lu,\"rssi\":%d,\"heap\":%u,\"auto\":%s,\"dist\":%ld,\"state\":%d,\"obstacle\":%s,\"attempts\":%d,\"settings\":{\"min\":%d,\"safe\":%d}}",
         millis()/1000, WiFi.RSSI(), ESP.getFreeHeap(), 
         autonomousMode ? "true" : "false", currentDistance, autoState,
         obstacleDetected ? "true" : "false", turnAttempts,
-        currentSettings.minDistance, currentSettings.safeDistance, currentSettings.maxDistance
+        currentSettings.minDistance, currentSettings.safeDistance
     );
     
     client.publish(MQTT_STATUS_TOPIC, jsonPayload, false);
@@ -721,22 +698,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
         DistanceSettings newSettings;
         newSettings.minDistance = doc["minDistance"] | currentSettings.minDistance;
         newSettings.safeDistance = doc["safeDistance"] | currentSettings.safeDistance;
-        newSettings.maxDistance = doc["maxDistance"] | currentSettings.maxDistance;
         
         // Validate and save new settings
         if (validateDistanceSettings(newSettings)) {
             if (saveDistanceSettings(newSettings)) {
                 logActivity("✅ Distance settings updated and saved");
                 logActivity("New settings - Min: " + String(currentSettings.minDistance) + 
-                           "cm, Safe: " + String(currentSettings.safeDistance) + 
-                           "cm, Max: " + String(currentSettings.maxDistance) + "cm");
+                           "cm, Safe: " + String(currentSettings.safeDistance) + "cm");
                 
                 // Send confirmation back to web interface
                 char confirmJson[200];
                 snprintf(confirmJson, sizeof(confirmJson),
-                    "{\"status\":\"success\",\"min\":%d,\"safe\":%d,\"max\":%d,\"timestamp\":%lu}",
+                    "{\"status\":\"success\",\"min\":%d,\"safe\":%d,\"timestamp\":%lu}",
                     currentSettings.minDistance, currentSettings.safeDistance, 
-                    currentSettings.maxDistance, millis()
+                    millis()
                 );
                 client.publish(MQTT_STATUS_TOPIC, confirmJson, false);
             } else {
@@ -752,8 +727,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         if (message == "on") {
             logActivity("🤖 AUTONOMOUS MODE ACTIVATED");
             logActivity("Using distance settings - Min: " + String(currentSettings.minDistance) + 
-                       "cm, Safe: " + String(currentSettings.safeDistance) + 
-                       "cm, Max: " + String(currentSettings.maxDistance) + "cm");
+                       "cm, Safe: " + String(currentSettings.safeDistance) + "cm");
             autonomousMode = true;
             autoState = AUTO_FORWARD;
             autoStateStartTime = millis();
@@ -812,9 +786,9 @@ void reconnect() {
         // Send current settings to web interface
         char settingsJson[200];
         snprintf(settingsJson, sizeof(settingsJson),
-            "{\"type\":\"settings\",\"min\":%d,\"safe\":%d,\"max\":%d,\"timestamp\":%lu}",
+            "{\"type\":\"settings\",\"min\":%d,\"safe\":%d,\"timestamp\":%lu}",
             currentSettings.minDistance, currentSettings.safeDistance, 
-            currentSettings.maxDistance, millis()
+            millis()
         );
         client.publish(MQTT_STATUS_TOPIC, settingsJson, false);
         
@@ -901,7 +875,6 @@ void setup() {
     logActivity("Active distance settings:");
     logActivity("- Minimum distance: " + String(currentSettings.minDistance) + "cm");
     logActivity("- Safe distance: " + String(currentSettings.safeDistance) + "cm");
-    logActivity("- Maximum distance: " + String(currentSettings.maxDistance) + "cm");
     logActivity("Waiting for MQTT connection...");
     
     Serial.println("=====================================");

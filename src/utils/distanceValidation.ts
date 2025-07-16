@@ -18,16 +18,12 @@ import { DistanceSettings, DISTANCE_CONSTRAINTS, ValidationResult } from '../typ
  */
 export const validateDistanceSettings = (settings: DistanceSettings): ValidationResult => {
   const errors: string[] = [];
-  const { minDistance, maxDistance, safeDistance } = settings;
-  const { MIN_ALLOWED, MAX_ALLOWED, MIN_SAFE_RATIO, MAX_SAFE_RATIO } = DISTANCE_CONSTRAINTS;
+  const { minDistance, safeDistance } = settings;
+  const { MIN_ALLOWED, MAX_ALLOWED, MIN_SAFE_RATIO } = DISTANCE_CONSTRAINTS;
 
   // Validasi range absolut
   if (minDistance < MIN_ALLOWED || minDistance > MAX_ALLOWED) {
     errors.push(`Jarak minimum harus antara ${MIN_ALLOWED}cm - ${MAX_ALLOWED}cm`);
-  }
-
-  if (maxDistance < MIN_ALLOWED || maxDistance > MAX_ALLOWED) {
-    errors.push(`Jarak maksimum harus antara ${MIN_ALLOWED}cm - ${MAX_ALLOWED}cm`);
   }
 
   if (safeDistance < MIN_ALLOWED || safeDistance > MAX_ALLOWED) {
@@ -39,21 +35,9 @@ export const validateDistanceSettings = (settings: DistanceSettings): Validation
     errors.push('Jarak minimum harus lebih kecil dari jarak aman');
   }
 
-  if (safeDistance >= maxDistance) {
-    errors.push('Jarak aman harus lebih kecil dari jarak maksimum');
-  }
-
-  if (minDistance >= maxDistance) {
-    errors.push('Jarak minimum harus lebih kecil dari jarak maksimum');
-  }
-
   // Validasi rasio keamanan
   if (safeDistance < minDistance * MIN_SAFE_RATIO) {
     errors.push(`Jarak aman harus minimal ${MIN_SAFE_RATIO}x jarak minimum (${Math.round(minDistance * MIN_SAFE_RATIO)}cm)`);
-  }
-
-  if (safeDistance > maxDistance * MAX_SAFE_RATIO) {
-    errors.push(`Jarak aman harus maksimal ${MAX_SAFE_RATIO}x jarak maksimum (${Math.round(maxDistance * MAX_SAFE_RATIO)}cm)`);
   }
 
   return {
@@ -80,25 +64,16 @@ export const sanitizeDistanceValue = (value: number): number => {
  * @returns Settings yang sudah di-correct
  */
 export const autoCorrectSettings = (settings: DistanceSettings): DistanceSettings => {
-  let { minDistance, maxDistance, safeDistance } = settings;
+  let { minDistance, safeDistance } = settings;
 
   // Sanitasi semua nilai
   minDistance = sanitizeDistanceValue(minDistance);
-  maxDistance = sanitizeDistanceValue(maxDistance);
   safeDistance = sanitizeDistanceValue(safeDistance);
 
-  // Auto-correct relasi
-  if (minDistance >= maxDistance) {
-    maxDistance = minDistance + 20; // Tambah 20cm
-  }
-
+  // Auto-correct relasi - pastikan safe distance lebih besar dari minimum
   if (safeDistance <= minDistance) {
     safeDistance = minDistance + 10; // Tambah 10cm
   }
 
-  if (safeDistance >= maxDistance) {
-    safeDistance = maxDistance - 10; // Kurang 10cm
-  }
-
-  return { minDistance, maxDistance, safeDistance };
+  return { minDistance, safeDistance };
 };
