@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield } from 'lucide-react';
+import { Camera, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Square, Gauge, RotateCw, Bot, Play, Pause, Shield, Settings } from 'lucide-react';
 
 // Import komponen dan hooks yang diperlukan
 import { useMQTT } from './hooks/useMQTT'; 
@@ -11,6 +11,8 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { UserProfile } from './components/UserProfile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { saveLogToDatabase, clearLogsFromDatabase, getLogsFromDatabase } from './lib/supabase';
+import { DistanceSettingsPanel } from './components/DistanceSettingsPanel';
+import { DistanceSettings } from './types/settings';
 
 // ===================================================================
 // KONFIGURASI UTAMA APLIKASI
@@ -75,6 +77,7 @@ const MQTT_TOPICS = {
   CONTROL:    'esp32/car/control/move',
   SPEED:      'esp32/car/control/speed',
   FLASH:      'esp32/car/control/flash',
+  DISTANCE_SETTINGS: 'esp32/car/config/distance',
   STATUS:     'esp32/car/status',
   CAMERA:     'esp32/cam/stream',
   LOG:        'esp32/car/log',
@@ -113,6 +116,7 @@ const RCCarController: React.FC = () => {
   const [logs, setLogs] = useState<Array<{id: string, timestamp: Date, level: string, message: string}>>([]);
   const [distance, setDistance] = useState<number | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
 
   // Hook MQTT untuk komunikasi dengan ESP32
   const { isConnected, connectionStatus, publish, subscribe, lastMessage } = useMQTT(mqttConfig);
@@ -257,6 +261,37 @@ const RCCarController: React.FC = () => {
       setLogs([]);
     }
   }, []);
+
+  // ===============================================================
+  // DISTANCE SETTINGS MANAGEMENT
+  // ===============================================================
+  
+  /**
+   * Handler untuk perubahan distance settings
+   * 
+   * Algoritma:
+   * 1. Terima settings baru dari DistanceSettingsPanel
+   * 2. Kirim settings ke ESP32 via MQTT
+   * 3. Log perubahan untuk debugging
+   * 
+   * @param settings - Distance settings yang baru
+   */
+  const handleDistanceSettingsChange = useCallback((settings: DistanceSettings) => {
+    if (isConnected) {
+      // Kirim settings ke ESP32 dalam format JSON
+      const settingsPayload = JSON.stringify({
+        minDistance: settings.minDistance,
+        maxDistance: settings.maxDistance,
+        safeDistance: settings.safeDistance,
+        timestamp: new Date().toISOString()
+      });
+      
+      publish(MQTT_TOPICS.DISTANCE_SETTINGS, settingsPayload);
+      
+      // Log perubahan
+      handleLogMessage(`[WEB] Distance settings updated: Min=${settings.minDistance}m, Safe=${settings.safeDistance}m, Max=${settings.maxDistance}m`);
+    }
+  }, [isConnected, publish, handleLogMessage]);
 
   // ===============================================================
   // ALGORITMA PEMROSESAN MQTT MESSAGES
@@ -657,6 +692,12 @@ const RCCarController: React.FC = () => {
 
           {/* Panel kanan: Controls */}
           <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+            
+            {/* Panel pengaturan jarak (collapsible) */}
+            <DistanceSettingsPanel 
+              onSettingsChange={handleDistanceSettingsChange}
+              isConnected={isConnected}
+            />
             
             {/* Panel kontrol mode autonomous */}
             <div className="bg-gray-800/50 p-4 sm:p-6 rounded-2xl border border-gray-700/50">

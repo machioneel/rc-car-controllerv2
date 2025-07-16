@@ -12,6 +12,9 @@ Aplikasi web modern untuk mengontrol mobil RC berbasis ESP32-CAM melalui interne
 - **Sensor Monitoring**: Pembacaan sensor jarak proximity secara real-time
 - **Autentikasi Aman**: Sistem login menggunakan Supabase Authentication
 - **Responsive Design**: Interface yang responsif dan modern dengan Tailwind CSS
+- **Pengaturan Jarak Kustomisasi**: Konfigurasi batas jarak autonomous yang dapat disesuaikan
+- **Validasi Input Real-time**: Validasi pengaturan jarak dengan feedback visual
+- **Persistent Settings**: Penyimpanan pengaturan yang bertahan setelah restart
 
 ## 🛠 Teknologi yang Digunakan
 
@@ -139,6 +142,16 @@ src/
 - **Sensor Data**: Lihat pembacaan sensor jarak proximity
 - **Connection Status**: Status koneksi MQTT ditampilkan di header
 
+### Pengaturan Jarak Autonomous
+1. Klik panel "Pengaturan Jarak" untuk membuka konfigurasi
+2. Atur tiga parameter jarak:
+   - **Jarak Minimum**: Jarak untuk berhenti/mundur (default: 0.3m)
+   - **Jarak Aman**: Jarak untuk navigasi normal (default: 1.0m)  
+   - **Jarak Maksimum**: Jarak deteksi maksimum (default: 2.0m)
+3. Sistem akan memvalidasi input secara real-time
+4. Klik "Simpan Pengaturan" untuk menerapkan perubahan
+5. Pengaturan akan tersimpan dan bertahan setelah restart
+
 ## 📡 MQTT Topics
 
 Aplikasi menggunakan topik MQTT berikut untuk komunikasi dengan ESP32:
@@ -148,6 +161,7 @@ Aplikasi menggunakan topik MQTT berikut untuk komunikasi dengan ESP32:
 | `esp32/car/control/move` | Kontrol pergerakan | `forward`, `backward`, `left`, `right`, `stop` |
 | `esp32/car/control/speed` | Kontrol kecepatan | `100-255` (integer) |
 | `esp32/car/control/flash` | Kontrol LED flash | `0-255` (integer) |
+| `esp32/car/config/distance` | Pengaturan jarak autonomous | JSON object dengan minDistance, maxDistance, safeDistance |
 | `esp32/car/command/autonomous` | Mode autonomous | `on`, `off` |
 | `esp32/car/status` | Status mobil | JSON status |
 | `esp32/cam/stream` | Stream kamera | Binary image data |
@@ -163,6 +177,7 @@ Untuk menggunakan aplikasi ini, ESP32-CAM Anda harus dikonfigurasi untuk:
 3. **Camera Module**: Streaming video ke topik `esp32/cam/stream`
 4. **Motor Control**: Menerima perintah dari topik kontrol
 5. **Sensor Integration**: Mengirim data sensor ke topik yang sesuai
+6. **Distance Settings**: Menerima konfigurasi jarak dari topik `esp32/car/config/distance`
 
 ## 🚀 Deployment
 
@@ -207,6 +222,11 @@ netlify deploy --prod --dir=dist
 - Periksa topik MQTT untuk camera stream
 - Pastikan format data gambar sesuai
 
+### Masalah Pengaturan Jarak
+- Periksa validasi input jika pengaturan tidak bisa disimpan
+- Pastikan nilai jarak dalam rentang 0.1m - 10m
+- Pastikan relasi jarak: minimum < aman < maksimum
+- Cek localStorage browser jika pengaturan tidak tersimpan
 ## 📝 Development
 
 ### Menjalankan dalam Mode Development
