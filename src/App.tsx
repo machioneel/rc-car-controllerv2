@@ -614,6 +614,13 @@ const RCCarController: React.FC = () => {
               <h3 className="text-sm sm:text-base font-semibold mb-2">Sensor Jarak</h3>
               <p className="text-sm sm:text-base">Jarak: {distance !== null ? `${distance.toFixed(1)} cm` : 'Membaca...'}</p>
             </div>
+            
+            {/* Panel pengaturan jarak (collapsible) */}
+            <DistanceSettingsPanel 
+              onSettingsChange={handleDistanceSettingsChange}
+              isConnected={isConnected}
+            />
+            
             {/* Panel logs dengan scroll dan clear functionality */}
             <LogPanel 
               logs={logs} 
@@ -692,12 +699,6 @@ const RCCarController: React.FC = () => {
 
           {/* Panel kanan: Controls */}
           <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-            
-            {/* Panel pengaturan jarak (collapsible) */}
-            <DistanceSettingsPanel 
-              onSettingsChange={handleDistanceSettingsChange}
-              isConnected={isConnected}
-            />
             
             {/* Panel kontrol mode autonomous */}
             <div className="bg-gray-800/50 p-4 sm:p-6 rounded-2xl border border-gray-700/50">
