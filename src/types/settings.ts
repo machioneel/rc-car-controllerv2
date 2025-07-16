@@ -36,3 +36,4 @@ export const DISTANCE_CONSTRAINTS = {
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
+}
