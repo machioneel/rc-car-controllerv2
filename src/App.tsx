@@ -295,14 +295,6 @@ const RCCarController: React.FC = () => {
   };
   const handleRotate = () => setRotation(p => (p + 90) % 360);
   
-  /**
-   * Handler perubahan kecepatan
-   * 
-   * Algoritma konversi:
-   * 1. Input: Persentase 0-100% dari UI slider
-   * 2. Konversi ke range ESP32: 100-255 (100 = stop, 255 = max speed)
-   * 3. Formula: 100 + (percentage/100 * 155)
-   */
   const handleSpeedChange = (v: number) => { 
     setSpeedPercent(v); 
     // Konversi persentase ke nilai PWM ESP32 (100-255)
