@@ -6,17 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 // USER PROFILE COMPONENT
 // ===================================================================
 
-/**
- * Component untuk menampilkan user profile dengan dropdown menu
- * 
- * Fitur:
- * 1. User avatar dengan gradient background
- * 2. Dropdown menu dengan animasi
- * 3. User info display (email, status)
- * 4. Settings dan logout actions
- * 5. Click outside to close functionality
- * 6. Responsive design
- */
 export const UserProfile: React.FC = () => {
   
   // ===============================================================
