@@ -154,15 +154,6 @@ const RCCarController: React.FC = () => {
     setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]);
   }, []);
 
-  /**
-   * Handler untuk menghapus semua logs
-   * 
-   * Algoritma:
-   * 1. Hapus logs dari database
-   * 2. Reset logs array ke empty array
-   * 3. Tambahkan log entry untuk mencatat aksi clear
-   * 4. Handle error jika database operation gagal
-   */
   const handleClearLogs = useCallback(async () => {
     try {
       // Hapus logs dari database
