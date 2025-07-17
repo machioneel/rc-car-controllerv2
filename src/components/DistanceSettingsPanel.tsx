@@ -3,10 +3,6 @@ import { Settings, Save, RotateCcw, AlertTriangle, CheckCircle, Ruler } from 'lu
 import { useDistanceSettings } from '../hooks/useDistanceSettings';
 import { DistanceSettings } from '../types/settings';
 
-// ===================================================================
-// DISTANCE SETTINGS PANEL COMPONENT - SIMPLIFIED
-// ===================================================================
-
 interface DistanceSettingsPanelProps {
   onSettingsChange?: (settings: DistanceSettings) => void;
   isConnected: boolean;
@@ -57,7 +53,7 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700/50">
       
-      {/* Header dengan toggle */}
+      {/* Header with toggle */}
       <div 
         className="p-4 border-b border-gray-700/50 cursor-pointer hover:bg-gray-700/20 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -109,7 +105,7 @@ export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({
             </div>
           )}
 
-          {/* Input field untuk jarak minimum */}
+          {/* Minimum distance input */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Jarak Minimum (cm)

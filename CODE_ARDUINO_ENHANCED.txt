@@ -1,9 +1,6 @@
-// ===================================================================
 // ESP32 RC CAR - SIMPLIFIED DISTANCE CONTROL SYSTEM
 // Version: 5.0 - Minimum Distance Only with Indonesian Logs
-// ===================================================================
 
-// --- BAGIAN 1: INCLUDE LIBRARY ---
 #include "esp_camera.h"
 #include <WiFiMulti.h>
 #include <WiFi.h>
@@ -13,9 +10,7 @@
 #include <ArduinoJson.h>
 #include "time.h"
 
-// --- BAGIAN 2: KONFIGURASI UTAMA ---
-
-// --- Konfigurasi WiFi ---
+// WiFi Configuration
 WiFiMulti wifiMulti;
 struct WiFiCredentials { const char* ssid; const char* password; };
 WiFiCredentials wifiList[] = {
@@ -24,7 +19,7 @@ WiFiCredentials wifiList[] = {
     {"Galaxy", "12345678"}
 };
 
-// --- Konfigurasi Pin ---
+// Pin Configuration
 #define MOTOR_EN 2 
 #define IN1 14
 #define IN2 15
@@ -34,19 +29,19 @@ WiFiCredentials wifiList[] = {
 #define TRIG_PIN 0
 #define ECHO_PIN 3
 
-// --- Konfigurasi PWM ---
+// PWM Configuration
 const int PWM_FREQ = 1000;
 const int PWM_RESOLUTION = 8;
 const int PWM_MOTOR_CHANNEL = 0;
 const int PWM_FLASH_CHANNEL = 1;
 
-// --- Konfigurasi MQTT ---
+// MQTT Configuration
 const char* mqtt_server = "098567b786d74be2863e6859abdf1f0e.s1.eu.hivemq.cloud";
 const int mqtt_port = 8883;
 const char* mqtt_user = "esp32-user"; 
 const char* mqtt_password = "Jangan999";
 
-// --- Definisi Topic MQTT ---
+// MQTT Topics
 #define MQTT_CAM_STREAM_TOPIC "esp32/cam/stream"
 #define MQTT_CONTROL_MOVE_TOPIC "esp32/car/control/move"
 #define MQTT_CONTROL_SPEED_TOPIC "esp32/car/control/speed"
@@ -58,12 +53,12 @@ const char* mqtt_password = "Jangan999";
 #define MQTT_SENSOR_DISTANCE_TOPIC "esp32/car/sensor/distance"
 #define MQTT_OBSTACLE_TOPIC "esp32/car/obstacle"
 
-// --- Konfigurasi NTP (Waktu) ---
+// NTP Configuration
 const char* ntpServer = "pool.ntp.org";
 const long  gmtOffset_sec = 7 * 3600;
 const int   daylightOffset_sec = 0;
 
-// --- Konfigurasi Pin Kamera (Model AI Thinker) ---
+// Camera Pin Configuration (AI Thinker Model)
 #define PWDN_GPIO_NUM 32
 #define RESET_GPIO_NUM -1
 #define XCLK_GPIO_NUM 0
@@ -81,9 +76,7 @@ const int   daylightOffset_sec = 0;
 #define HREF_GPIO_NUM 23
 #define PCLK_GPIO_NUM 22
 
-// --- BAGIAN 3: EEPROM CONFIGURATION & DISTANCE SETTINGS ---
-
-// EEPROM Memory Layout
+// EEPROM Configuration
 #define EEPROM_SIZE 512
 #define EEPROM_MAGIC_NUMBER 0xABCD
 #define EEPROM_VERSION 1
@@ -94,7 +87,7 @@ const int   daylightOffset_sec = 0;
 #define ADDR_MIN_DISTANCE 3   // 2 bytes - Minimum distance (cm)
 #define ADDR_CHECKSUM 5       // 1 byte - Simple checksum
 
-// Distance Settings Structure - SIMPLIFIED
+// Distance Settings Structure
 struct DistanceSettings {
     uint16_t minDistance;   // Minimum distance in cm (5-300)
 };
@@ -104,10 +97,9 @@ DistanceSettings defaultSettings = {
     .minDistance = 15,   // 15cm - minimum distance for stop/reverse
 };
 
-// Current active settings
 DistanceSettings currentSettings;
 
-// --- BAGIAN 4: INISIALISASI OBJEK & VARIABEL GLOBAL ---
+// Global Variables
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
 
@@ -125,7 +117,7 @@ bool timeConfigured = false;
 long currentDistance = 0;
 long previousDistance = 0;
 
-// --- VARIABEL ENHANCED UNTUK MODE AUTONOMOUS ---
+// Autonomous State Machine
 enum AutonomousState {
     AUTO_FORWARD,
     AUTO_OBSTACLE_DETECTED,
@@ -147,13 +139,13 @@ bool obstacleDetected = false;
 int turnAttempts = 0;
 const int maxTurnAttempts = 3;
 
-// --- OPTIMASI CAMERA STREAMING ---
+// Camera streaming optimization
 unsigned long lastCameraCleanup = 0;
 const long cameraCleanupInterval = 5000;
 int consecutiveFrameFailures = 0;
 const int maxFrameFailures = 5;
 
-// --- BAGIAN 5: EEPROM FUNCTIONS ---
+// EEPROM Functions
 
 /**
  * Calculate simple checksum for settings validation
@@ -169,9 +161,7 @@ uint8_t calculateChecksum(const DistanceSettings& settings) {
  * Validate distance settings for safety and logic
  */
 bool validateDistanceSettings(const DistanceSettings& settings) {
-    // Range validation (5cm - 300cm)
     if (settings.minDistance < 5 || settings.minDistance > 300) return false;
-    
     return true;
 }
 
@@ -179,9 +169,7 @@ bool validateDistanceSettings(const DistanceSettings& settings) {
  * Auto-correct invalid settings to safe values
  */
 DistanceSettings autoCorrectSettings(DistanceSettings settings) {
-    // Clamp to valid ranges
     settings.minDistance = constrain(settings.minDistance, 5, 300);
-    
     return settings;
 }
 
@@ -189,7 +177,6 @@ DistanceSettings autoCorrectSettings(DistanceSettings settings) {
  * Save distance settings to EEPROM with validation
  */
 bool saveDistanceSettings(const DistanceSettings& settings) {
-    // Validate settings before saving
     DistanceSettings validatedSettings = autoCorrectSettings(settings);
     
     if (!validateDistanceSettings(validatedSettings)) {
@@ -197,18 +184,13 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
         validatedSettings = defaultSettings;
     }
     
-    // Write magic number and version
     EEPROM.writeUShort(ADDR_MAGIC, EEPROM_MAGIC_NUMBER);
     EEPROM.writeByte(ADDR_VERSION, EEPROM_VERSION);
-    
-    // Write settings
     EEPROM.writeUShort(ADDR_MIN_DISTANCE, validatedSettings.minDistance);
     
-    // Write checksum
     uint8_t checksum = calculateChecksum(validatedSettings);
     EEPROM.writeByte(ADDR_CHECKSUM, checksum);
     
-    // Commit to flash
     bool success = EEPROM.commit();
     
     if (success) {
@@ -226,25 +208,21 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
  * Load distance settings from EEPROM with validation
  */
 bool loadDistanceSettings() {
-    // Check magic number
     uint16_t magic = EEPROM.readUShort(ADDR_MAGIC);
     if (magic != EEPROM_MAGIC_NUMBER) {
         logActivity("EEPROM belum diinisialisasi, menggunakan default");
         return false;
     }
     
-    // Check version
     uint8_t version = EEPROM.readByte(ADDR_VERSION);
     if (version != EEPROM_VERSION) {
         logActivity("Versi EEPROM tidak cocok, menggunakan default");
         return false;
     }
     
-    // Read settings
     DistanceSettings loadedSettings;
     loadedSettings.minDistance = EEPROM.readUShort(ADDR_MIN_DISTANCE);
     
-    // Verify checksum
     uint8_t storedChecksum = EEPROM.readByte(ADDR_CHECKSUM);
     uint8_t calculatedChecksum = calculateChecksum(loadedSettings);
     
@@ -253,13 +231,11 @@ bool loadDistanceSettings() {
         return false;
     }
     
-    // Validate loaded settings
     if (!validateDistanceSettings(loadedSettings)) {
         logActivity("Pengaturan yang dimuat tidak valid, menggunakan default");
         return false;
     }
     
-    // Settings are valid, apply them
     currentSettings = loadedSettings;
     logActivity("Pengaturan jarak dimuat dari EEPROM");
     logActivity("Jarak minimum: " + String(currentSettings.minDistance) + "cm");
@@ -279,9 +255,7 @@ void initializeEEPROM() {
         return;
     }
     
-    // Try to load settings from EEPROM
     if (!loadDistanceSettings()) {
-        // Failed to load, save defaults
         logActivity("Menyimpan pengaturan default ke EEPROM...");
         currentSettings = defaultSettings;
         saveDistanceSettings(currentSettings);
@@ -290,7 +264,7 @@ void initializeEEPROM() {
     logActivity("EEPROM berhasil diinisialisasi");
 }
 
-// --- BAGIAN 6: FUNGSI-FUNGSI UTAMA ---
+// Core Functions
 
 void ensureSerialReady() {
     if (!Serial) {
@@ -339,7 +313,7 @@ void setupTime() {
     timeConfigured = true;
 }
 
-// --- MOTOR FUNCTIONS (OPTIMIZED) ---
+// Motor Control Functions
 void moveForward() { 
     ledcWrite(PWM_MOTOR_CHANNEL, speed); 
     digitalWrite(IN1, HIGH); digitalWrite(IN2, LOW); 
@@ -452,7 +426,10 @@ void publishStatus() {
     client.publish(MQTT_STATUS_TOPIC, jsonPayload, false);
 }
 
-// OPTIMIZED DISTANCE READING
+/**
+ * Read distance from ultrasonic sensor
+ * Returns distance in centimeters (formula: duration / 2 / 29.1)
+ */
 long getDistance() {
     digitalWrite(TRIG_PIN, LOW);
     delayMicroseconds(2);
@@ -467,15 +444,15 @@ long getDistance() {
     return (distance > 0 && distance < 300) ? distance : 999;
 }
 
-// ENHANCED AUTONOMOUS MODE WITH ADJUSTABLE DISTANCE SETTINGS
+/**
+ * Enhanced autonomous mode with adjustable distance settings
+ */
 void runAutonomousLogic() {
     unsigned long currentTime = millis();
     
-    // Use current settings for obstacle detection
     int obstacleThreshold = currentSettings.minDistance;
     int criticalDistance = max(5, obstacleThreshold - 5);
     
-    // Check for obstacles using current settings
     if (currentDistance <= obstacleThreshold && currentDistance > 0) {
         if (!obstacleDetected) {
             obstacleDetected = true;
@@ -656,7 +633,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (topicStr == MQTT_DISTANCE_SETTINGS_TOPIC) {
         logActivity("Menerima pengaturan jarak: " + message);
         
-        // Parse JSON payload
         DynamicJsonDocument doc(512);
         DeserializationError error = deserializeJson(doc, message);
         
@@ -665,17 +641,14 @@ void callback(char* topic, byte* payload, unsigned int length) {
             return;
         }
         
-        // Extract settings from JSON
         DistanceSettings newSettings;
         newSettings.minDistance = doc["minDistance"] | currentSettings.minDistance;
         
-        // Validate and save new settings
         if (validateDistanceSettings(newSettings)) {
             if (saveDistanceSettings(newSettings)) {
                 logActivity("Pengaturan jarak diperbarui dan disimpan");
                 logActivity("Pengaturan baru - Minimum: " + String(currentSettings.minDistance) + "cm");
                 
-                // Send confirmation back to web interface
                 char confirmJson[200];
                 snprintf(confirmJson, sizeof(confirmJson),
                     "{\"status\":\"success\",\"min\":%d,\"timestamp\":%lu}",
@@ -750,7 +723,6 @@ void reconnect() {
         client.subscribe(MQTT_DISTANCE_SETTINGS_TOPIC);
         logActivity("Berlangganan ke semua topik");
         
-        // Send current settings to web interface
         char settingsJson[200];
         snprintf(settingsJson, sizeof(settingsJson),
             "{\"type\":\"settings\",\"min\":%d,\"timestamp\":%lu}",
@@ -764,7 +736,6 @@ void reconnect() {
     }
 }
 
-// --- BAGIAN 7: SETUP ---
 void setup() {
     Serial.begin(115200);
     delay(2000);
@@ -783,10 +754,8 @@ void setup() {
     logActivity("Sistem booting...");
     logActivity("Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
     
-    // Initialize EEPROM and load distance settings
     initializeEEPROM();
     
-    // PWM Setup
     logActivity("Menginisialisasi PWM...");
     ledcSetup(PWM_MOTOR_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
     ledcAttachPin(MOTOR_EN, PWM_MOTOR_CHANNEL);
@@ -794,7 +763,6 @@ void setup() {
     ledcAttachPin(FLASH_PIN, PWM_FLASH_CHANNEL);
     logActivity("PWM diinisialisasi");
     
-    // GPIO Setup
     logActivity("Mengatur pin GPIO...");
     pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
     pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
@@ -806,11 +774,9 @@ void setup() {
     ledcWrite(PWM_FLASH_CHANNEL, 0);
     logActivity("Pin GPIO dikonfigurasi");
     
-    // Camera Setup
     logActivity("Menginisialisasi kamera...");
     setupCamera();
     
-    // WiFi Setup
     logActivity("Menghubungkan ke WiFi...");
     for (auto const& cred : wifiList) { 
         wifiMulti.addAP(cred.ssid, cred.password); 
@@ -829,7 +795,6 @@ void setup() {
         ESP.restart();
     }
     
-    // MQTT Setup
     logActivity("Mengkonfigurasi MQTT...");
     espClient.setInsecure();
     client.setBufferSize(24000);
@@ -848,22 +813,18 @@ void setup() {
     Serial.println();
 }
 
-// --- BAGIAN 8: MAIN LOOP ---
 void loop() {
-    // WiFi check
     if (WiFi.status() != WL_CONNECTED) {
         if(wifiMulti.run(5000) != WL_CONNECTED) {
             ESP.restart();
         }
     }
     
-    // MQTT connection
     if (!client.connected()) {
         reconnect();
     }
     client.loop();
     
-    // Distance reading with current settings
     if (millis() - lastDistanceTime > distanceInterval) {
         previousDistance = currentDistance;
         currentDistance = getDistance();
@@ -876,12 +837,10 @@ void loop() {
         lastDistanceTime = millis();
     }
     
-    // Autonomous mode with adjustable distance settings
     if (autonomousMode) {
         runAutonomousLogic();
     }
     
-    // Camera streaming
     if (millis() - lastFrameTime > frameInterval) {
         if (client.connected()) {
             camera_fb_t* fb = esp_camera_fb_get();
@@ -905,7 +864,6 @@ void loop() {
         lastFrameTime = millis();
     }
     
-    // Status update
     if (millis() - lastStatusTime > statusInterval) {
         if (client.connected()) {
             publishStatus();

@@ -1,7 +1,4 @@
-// ===================================================================
-// DISTANCE SETTINGS TYPE DEFINITIONS (in Centimeters) - SIMPLIFIED
-// ===================================================================
-
+// Distance settings type definitions (in Centimeters)
 export interface DistanceSettings {
   minDistance: number; 
 }

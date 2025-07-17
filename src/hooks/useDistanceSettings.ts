@@ -2,10 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { DistanceSettings, DEFAULT_DISTANCE_SETTINGS } from '../types/settings';
 import { validateDistanceSettings, autoCorrectSettings } from '../utils/distanceValidation';
 
-// ===================================================================
-// DISTANCE SETTINGS HOOK - SIMPLIFIED
-// ===================================================================
-
 const STORAGE_KEY = 'rc_car_distance_settings';
 
 interface UseDistanceSettingsReturn {
@@ -29,9 +25,7 @@ export const useDistanceSettings = (
 
   const hasUnsavedChanges = JSON.stringify(settings) !== JSON.stringify(savedSettings);
 
-  /**
-   * Load settings dari localStorage saat component mount
-   */
+  // Load settings from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -65,9 +59,7 @@ export const useDistanceSettings = (
     }
   }, [onSettingsChange]);
 
-  /**
-   * Update settings dengan validasi real-time
-   */
+  // Update settings with real-time validation
   const updateSettings = useCallback((newSettings: Partial<DistanceSettings>) => {
     setSettings(prevSettings => {
       const updatedSettings = { ...prevSettings, ...newSettings };
@@ -80,9 +72,7 @@ export const useDistanceSettings = (
     });
   }, []);
 
-  /**
-   * Save settings ke localStorage dan notify parent
-   */
+  // Save settings to localStorage and notify parent
   const saveSettings = useCallback(() => {
     if (!isValid) {
       console.warn('Tidak dapat menyimpan pengaturan yang tidak valid');
@@ -105,9 +95,7 @@ export const useDistanceSettings = (
     }
   }, [settings, isValid, onSettingsChange]);
 
-  /**
-   * Reset ke default settings
-   */
+  // Reset to default settings
   const resetToDefaults = useCallback(() => {
     setSettings(DEFAULT_DISTANCE_SETTINGS);
     setValidationErrors([]);
