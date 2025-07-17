@@ -718,12 +718,6 @@ const AppContent: React.FC = () => {
   );
 };
 
-/**
- * Root component dengan AuthProvider wrapper dan Router
- * 
- * Struktur:
- * Router -> AuthProvider -> AppContent -> (LoadingSpinner | LoginForm | Routes)
- */
 function App() {
   return (
     <Router>
