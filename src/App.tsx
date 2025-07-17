@@ -49,19 +49,6 @@ const mqttConfig = {
   }
 };
 
-/**
- * Definisi MQTT Topics untuk komunikasi dengan ESP32
- * 
- * Struktur komunikasi:
- * - CONTROL: Perintah pergerakan mobil (forward, backward, left, right, stop)
- * - SPEED: Kontrol kecepatan motor (0-255)
- * - FLASH: Kontrol intensitas LED flash (0-255)
- * - STATUS: Menerima status dari ESP32
- * - CAMERA: Menerima stream gambar dari ESP32-CAM
- * - LOG: Menerima log messages dari ESP32
- * - AUTONOMOUS: Mengaktifkan/menonaktifkan mode autonomous
- * - SENSOR_DISTANCE: Menerima data sensor jarak proximity
- */
 const MQTT_TOPICS = {
   CONTROL:    'esp32/car/control/move',
   SPEED:      'esp32/car/control/speed',
