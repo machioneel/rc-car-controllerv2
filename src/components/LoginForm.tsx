@@ -45,8 +45,6 @@ export const LoginForm: React.FC = () => {
       if (error) {
         setError(error.message);
       }
-      // Success case akan di-handle oleh auth context
-      // dan akan redirect otomatis ke main app
       
     } catch (err) {
       // Handle unexpected errors
