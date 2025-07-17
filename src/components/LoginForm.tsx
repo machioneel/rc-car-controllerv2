@@ -30,19 +30,6 @@ export const LoginForm: React.FC = () => {
   // EVENT HANDLERS
   // ===============================================================
   
-  /**
-   * Handler untuk form submission
-   * 
-   * Algoritma:
-   * 1. Prevent default form submission
-   * 2. Set loading state untuk UI feedback
-   * 3. Clear previous error messages
-   * 4. Call signIn function dengan credentials
-   * 5. Handle error response dan display
-   * 6. Reset loading state
-   * 
-   * @param e - Form submit event
-   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent default form submission
     
