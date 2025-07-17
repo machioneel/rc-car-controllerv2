@@ -234,11 +234,6 @@ const RCCarController: React.FC = () => {
       
       // Pemrosesan stream kamera
       if (topic === MQTT_TOPICS.CAMERA) {
-        // Algoritma konversi binary data ke displayable image:
-        // 1. Buat Blob dari Buffer data
-        // 2. Generate Object URL dari Blob
-        // 3. Revoke URL lama untuk memory management
-        // 4. Set URL baru untuk display
         const blob = new Blob([message as Buffer]);
         const newUrl = URL.createObjectURL(blob);
         setCameraUrl(prevUrl => {
