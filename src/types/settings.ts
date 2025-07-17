@@ -13,20 +13,14 @@ export interface DistanceSettings {
  * Default values untuk distance settings
  */
 export const DEFAULT_DISTANCE_SETTINGS: DistanceSettings = {
-  minDistance: 15,    // 15cm - jarak minimum untuk stop
+  minDistance: 15, 
 };
 
-/**
- * Validation constraints untuk distance settings
- */
 export const DISTANCE_CONSTRAINTS = {
-  MIN_ALLOWED: 5,       // 5cm - batas minimum absolut
-  MAX_ALLOWED: 300,     // 300cm - batas maksimum absolut
+  MIN_ALLOWED: 5,
+  MAX_ALLOWED: 300,
 };
 
-/**
- * Validation result interface
- */
 export interface ValidationResult {
   isValid: boolean;
   errors: string[];
