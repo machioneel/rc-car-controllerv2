@@ -70,19 +70,6 @@ const RCCarController: React.FC = () => {
   // STATE MANAGEMENT
   // ===============================================================
   
-  /**
-   * State untuk kontrol RC car
-   * 
-   * speedPercent: Persentase kecepatan (0-100%) untuk UI display
-   * ledPercent: Persentase intensitas LED (0-100%) untuk UI display
-   * activeKeys: Set untuk tracking tombol keyboard yang sedang ditekan
-   * cameraUrl: Object URL untuk menampilkan stream kamera
-   * rotation: Derajat rotasi gambar kamera (0, 90, 180, 270)
-   * isAutonomous: Flag untuk mode autonomous driving
-   * logs: Array untuk menyimpan log messages dengan metadata
-   * distance: Nilai sensor jarak dalam centimeter
-   * isLoadingLogs: Flag untuk loading state saat fetch logs dari database
-   */
   const [speedPercent, setSpeedPercent] = useState<number>(50);
   const [ledPercent, setLedPercent] = useState<number>(0);
   const [activeKeys, setActiveKeys] = useState<Set<string>>(new Set());
