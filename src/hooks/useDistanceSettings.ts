@@ -3,19 +3,8 @@ import { DistanceSettings, DEFAULT_DISTANCE_SETTINGS } from '../types/settings';
 import { validateDistanceSettings, autoCorrectSettings } from '../utils/distanceValidation';
 
 // ===================================================================
-// DISTANCE SETTINGS HOOK
+// DISTANCE SETTINGS HOOK - SIMPLIFIED
 // ===================================================================
-
-/**
- * Custom hook untuk mengelola distance settings dengan persistence
- * 
- * Fitur:
- * 1. Load settings dari localStorage saat init
- * 2. Auto-save ke localStorage saat settings berubah
- * 3. Validasi real-time
- * 4. Auto-correction untuk nilai yang tidak valid
- * 5. Callback untuk notifikasi perubahan ke parent
- */
 
 const STORAGE_KEY = 'rc_car_distance_settings';
 
@@ -33,25 +22,13 @@ export const useDistanceSettings = (
   onSettingsChange?: (settings: DistanceSettings) => void
 ): UseDistanceSettingsReturn => {
   
-  // ===============================================================
-  // STATE MANAGEMENT
-  // ===============================================================
-  
   const [settings, setSettings] = useState<DistanceSettings>(DEFAULT_DISTANCE_SETTINGS);
   const [savedSettings, setSavedSettings] = useState<DistanceSettings>(DEFAULT_DISTANCE_SETTINGS);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isValid, setIsValid] = useState(true);
 
-  // ===============================================================
-  // COMPUTED VALUES
-  // ===============================================================
-  
   const hasUnsavedChanges = JSON.stringify(settings) !== JSON.stringify(savedSettings);
 
-  // ===============================================================
-  // INITIALIZATION
-  // ===============================================================
-  
   /**
    * Load settings dari localStorage saat component mount
    */
@@ -61,7 +38,6 @@ export const useDistanceSettings = (
       if (stored) {
         const parsedSettings = JSON.parse(stored) as DistanceSettings;
         
-        // Validasi dan auto-correct jika diperlukan
         const correctedSettings = autoCorrectSettings(parsedSettings);
         const validation = validateDistanceSettings(correctedSettings);
         
@@ -71,31 +47,24 @@ export const useDistanceSettings = (
           setValidationErrors([]);
           setIsValid(true);
           
-          // Notify parent component
           onSettingsChange?.(correctedSettings);
         } else {
-          // Jika stored settings tidak valid, gunakan default
-          console.warn('Invalid stored settings, using defaults:', validation.errors);
+          console.warn('Pengaturan tersimpan tidak valid, menggunakan default:', validation.errors);
           setSettings(DEFAULT_DISTANCE_SETTINGS);
           setSavedSettings(DEFAULT_DISTANCE_SETTINGS);
           onSettingsChange?.(DEFAULT_DISTANCE_SETTINGS);
         }
       } else {
-        // Tidak ada stored settings, gunakan default
         onSettingsChange?.(DEFAULT_DISTANCE_SETTINGS);
       }
     } catch (error) {
-      console.error('Error loading distance settings:', error);
+      console.error('Error memuat pengaturan jarak:', error);
       setSettings(DEFAULT_DISTANCE_SETTINGS);
       setSavedSettings(DEFAULT_DISTANCE_SETTINGS);
       onSettingsChange?.(DEFAULT_DISTANCE_SETTINGS);
     }
   }, [onSettingsChange]);
 
-  // ===============================================================
-  // SETTINGS MANAGEMENT FUNCTIONS
-  // ===============================================================
-  
   /**
    * Update settings dengan validasi real-time
    */
@@ -103,7 +72,6 @@ export const useDistanceSettings = (
     setSettings(prevSettings => {
       const updatedSettings = { ...prevSettings, ...newSettings };
       
-      // Validasi settings baru
       const validation = validateDistanceSettings(updatedSettings);
       setValidationErrors(validation.errors);
       setIsValid(validation.isValid);
@@ -117,27 +85,23 @@ export const useDistanceSettings = (
    */
   const saveSettings = useCallback(() => {
     if (!isValid) {
-      console.warn('Cannot save invalid settings');
+      console.warn('Tidak dapat menyimpan pengaturan yang tidak valid');
       return;
     }
 
     try {
-      // Auto-correct sebelum save untuk memastikan konsistensi
       const correctedSettings = autoCorrectSettings(settings);
       
-      // Save ke localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(correctedSettings));
       
-      // Update state
       setSettings(correctedSettings);
       setSavedSettings(correctedSettings);
       
-      // Notify parent component
       onSettingsChange?.(correctedSettings);
       
-      console.log('Distance settings saved:', correctedSettings);
+      console.log('Pengaturan jarak disimpan:', correctedSettings);
     } catch (error) {
-      console.error('Error saving distance settings:', error);
+      console.error('Error menyimpan pengaturan jarak:', error);
     }
   }, [settings, isValid, onSettingsChange]);
 
@@ -149,20 +113,15 @@ export const useDistanceSettings = (
     setValidationErrors([]);
     setIsValid(true);
     
-    // Auto-save defaults
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DISTANCE_SETTINGS));
       setSavedSettings(DEFAULT_DISTANCE_SETTINGS);
       onSettingsChange?.(DEFAULT_DISTANCE_SETTINGS);
     } catch (error) {
-      console.error('Error saving default settings:', error);
+      console.error('Error menyimpan pengaturan default:', error);
     }
   }, [onSettingsChange]);
 
-  // ===============================================================
-  // RETURN HOOK VALUES
-  // ===============================================================
-  
   return {
     settings,
     updateSettings,

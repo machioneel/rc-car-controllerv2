@@ -1,13 +1,12 @@
 // ===================================================================
-// DISTANCE SETTINGS TYPE DEFINITIONS (in Centimeters)
+// DISTANCE SETTINGS TYPE DEFINITIONS (in Centimeters) - SIMPLIFIED
 // ===================================================================
 
 /**
- * Interface untuk pengaturan jarak autonomous dalam centimeter
+ * Interface untuk pengaturan jarak minimum dalam centimeter
  */
 export interface DistanceSettings {
   minDistance: number;    // Jarak minimum dalam cm (untuk stop/mundur)
-  safeDistance: number;   // Jarak aman untuk navigasi normal dalam cm
 }
 
 /**
@@ -15,7 +14,6 @@ export interface DistanceSettings {
  */
 export const DEFAULT_DISTANCE_SETTINGS: DistanceSettings = {
   minDistance: 15,    // 15cm - jarak minimum untuk stop
-  safeDistance: 30,   // 30cm - jarak aman untuk navigasi
 };
 
 /**
@@ -24,7 +22,6 @@ export const DEFAULT_DISTANCE_SETTINGS: DistanceSettings = {
 export const DISTANCE_CONSTRAINTS = {
   MIN_ALLOWED: 5,       // 5cm - batas minimum absolut
   MAX_ALLOWED: 300,     // 300cm - batas maksimum absolut
-  MIN_SAFE_RATIO: 1.5,  // safeDistance harus minimal 1.5x minDistance
 };
 
 /**

@@ -281,14 +281,13 @@ const RCCarController: React.FC = () => {
       // Kirim settings ke ESP32 dalam format JSON
       const settingsPayload = JSON.stringify({
         minDistance: settings.minDistance,
-        safeDistance: settings.safeDistance,
         timestamp: new Date().toISOString()
       });
       
       publish(MQTT_TOPICS.DISTANCE_SETTINGS, settingsPayload);
       
       // Log perubahan
-      handleLogMessage(`[WEB] Distance settings updated: Min=${settings.minDistance}cm, Safe=${settings.safeDistance}cm`);
+      handleLogMessage(`Pengaturan jarak diperbarui: Minimum=${settings.minDistance}cm`);
     }
   }, [isConnected, publish, handleLogMessage]);
 

@@ -1,6 +1,6 @@
 // ===================================================================
-// ESP32 RC CAR - ENHANCED AUTONOMOUS DISTANCE CONTROL SYSTEM
-// Version: 4.0 - Adjustable Distance Settings with EEPROM Persistence
+// ESP32 RC CAR - SIMPLIFIED DISTANCE CONTROL SYSTEM
+// Version: 5.0 - Minimum Distance Only with Indonesian Logs
 // ===================================================================
 
 // --- BAGIAN 1: INCLUDE LIBRARY ---
@@ -92,20 +92,16 @@ const int   daylightOffset_sec = 0;
 #define ADDR_MAGIC 0          // 2 bytes - Magic number for validation
 #define ADDR_VERSION 2        // 1 byte - Settings version
 #define ADDR_MIN_DISTANCE 3   // 2 bytes - Minimum distance (cm)
-#define ADDR_SAFE_DISTANCE 5  // 2 bytes - Safe distance (cm)
-#define ADDR_MAX_DISTANCE 7   // 2 bytes - Maximum distance (cm)
-#define ADDR_CHECKSUM 9       // 1 byte - Simple checksum
+#define ADDR_CHECKSUM 5       // 1 byte - Simple checksum
 
-// Distance Settings Structure
+// Distance Settings Structure - SIMPLIFIED
 struct DistanceSettings {
     uint16_t minDistance;   // Minimum distance in cm (5-300)
-    uint16_t safeDistance;  // Safe distance in cm (5-300)
 };
 
 // Default distance settings (in centimeters)
 DistanceSettings defaultSettings = {
     .minDistance = 15,   // 15cm - minimum distance for stop/reverse
-    .safeDistance = 30,  // 30cm - safe distance for normal navigation
 };
 
 // Current active settings
@@ -166,8 +162,6 @@ uint8_t calculateChecksum(const DistanceSettings& settings) {
     uint8_t checksum = 0;
     checksum ^= (settings.minDistance & 0xFF);
     checksum ^= (settings.minDistance >> 8);
-    checksum ^= (settings.safeDistance & 0xFF);
-    checksum ^= (settings.safeDistance >> 8);
     return checksum;
 }
 
@@ -177,13 +171,6 @@ uint8_t calculateChecksum(const DistanceSettings& settings) {
 bool validateDistanceSettings(const DistanceSettings& settings) {
     // Range validation (5cm - 300cm)
     if (settings.minDistance < 5 || settings.minDistance > 300) return false;
-    if (settings.safeDistance < 5 || settings.safeDistance > 300) return false;
-    
-    // Logical relationship validation
-    if (settings.minDistance >= settings.safeDistance) return false;
-    
-    // Safety ratio validation
-    if (settings.safeDistance < settings.minDistance * 1.5) return false;
     
     return true;
 }
@@ -194,17 +181,6 @@ bool validateDistanceSettings(const DistanceSettings& settings) {
 DistanceSettings autoCorrectSettings(DistanceSettings settings) {
     // Clamp to valid ranges
     settings.minDistance = constrain(settings.minDistance, 5, 300);
-    settings.safeDistance = constrain(settings.safeDistance, 5, 300);
-    
-    // Fix logical relationship - ensure safe distance is greater than minimum
-    if (settings.safeDistance <= settings.minDistance) {
-        settings.safeDistance = settings.minDistance + 10;
-    }
-    
-    // Ensure safety ratios
-    if (settings.safeDistance < settings.minDistance * 1.5) {
-        settings.safeDistance = settings.minDistance * 1.5;
-    }
     
     return settings;
 }
@@ -217,7 +193,7 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
     DistanceSettings validatedSettings = autoCorrectSettings(settings);
     
     if (!validateDistanceSettings(validatedSettings)) {
-        logActivity("❌ Settings validation failed, using defaults");
+        logActivity("Validasi pengaturan gagal, menggunakan default");
         validatedSettings = defaultSettings;
     }
     
@@ -227,8 +203,6 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
     
     // Write settings
     EEPROM.writeUShort(ADDR_MIN_DISTANCE, validatedSettings.minDistance);
-    EEPROM.writeUShort(ADDR_SAFE_DISTANCE, validatedSettings.safeDistance);
-    EEPROM.writeUShort(ADDR_MAX_DISTANCE, validatedSettings.maxDistance);
     
     // Write checksum
     uint8_t checksum = calculateChecksum(validatedSettings);
@@ -239,11 +213,10 @@ bool saveDistanceSettings(const DistanceSettings& settings) {
     
     if (success) {
         currentSettings = validatedSettings;
-        logActivity("✅ Distance settings saved to EEPROM");
-        logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
-                   String(currentSettings.safeDistance) + "cm");
+        logActivity("Pengaturan jarak disimpan ke EEPROM");
+        logActivity("Jarak minimum: " + String(currentSettings.minDistance) + "cm");
     } else {
-        logActivity("❌ Failed to save settings to EEPROM");
+        logActivity("Gagal menyimpan pengaturan ke EEPROM");
     }
     
     return success;
@@ -256,42 +229,40 @@ bool loadDistanceSettings() {
     // Check magic number
     uint16_t magic = EEPROM.readUShort(ADDR_MAGIC);
     if (magic != EEPROM_MAGIC_NUMBER) {
-        logActivity("⚠️ EEPROM not initialized, using defaults");
+        logActivity("EEPROM belum diinisialisasi, menggunakan default");
         return false;
     }
     
     // Check version
     uint8_t version = EEPROM.readByte(ADDR_VERSION);
     if (version != EEPROM_VERSION) {
-        logActivity("⚠️ EEPROM version mismatch, using defaults");
+        logActivity("Versi EEPROM tidak cocok, menggunakan default");
         return false;
     }
     
     // Read settings
     DistanceSettings loadedSettings;
     loadedSettings.minDistance = EEPROM.readUShort(ADDR_MIN_DISTANCE);
-    loadedSettings.safeDistance = EEPROM.readUShort(ADDR_SAFE_DISTANCE);
     
     // Verify checksum
     uint8_t storedChecksum = EEPROM.readByte(ADDR_CHECKSUM);
     uint8_t calculatedChecksum = calculateChecksum(loadedSettings);
     
     if (storedChecksum != calculatedChecksum) {
-        logActivity("❌ EEPROM checksum mismatch, data corrupted");
+        logActivity("Checksum EEPROM tidak cocok, data rusak");
         return false;
     }
     
     // Validate loaded settings
     if (!validateDistanceSettings(loadedSettings)) {
-        logActivity("❌ Loaded settings invalid, using defaults");
+        logActivity("Pengaturan yang dimuat tidak valid, menggunakan default");
         return false;
     }
     
     // Settings are valid, apply them
     currentSettings = loadedSettings;
-    logActivity("✅ Distance settings loaded from EEPROM");
-    logActivity("Min: " + String(currentSettings.minDistance) + "cm, Safe: " + 
-               String(currentSettings.safeDistance) + "cm");
+    logActivity("Pengaturan jarak dimuat dari EEPROM");
+    logActivity("Jarak minimum: " + String(currentSettings.minDistance) + "cm");
     
     return true;
 }
@@ -300,10 +271,10 @@ bool loadDistanceSettings() {
  * Initialize EEPROM and load settings
  */
 void initializeEEPROM() {
-    logActivity("🔧 Initializing EEPROM...");
+    logActivity("Menginisialisasi EEPROM...");
     
     if (!EEPROM.begin(EEPROM_SIZE)) {
-        logActivity("❌ EEPROM initialization failed!");
+        logActivity("Inisialisasi EEPROM gagal!");
         currentSettings = defaultSettings;
         return;
     }
@@ -311,12 +282,12 @@ void initializeEEPROM() {
     // Try to load settings from EEPROM
     if (!loadDistanceSettings()) {
         // Failed to load, save defaults
-        logActivity("💾 Saving default settings to EEPROM...");
+        logActivity("Menyimpan pengaturan default ke EEPROM...");
         currentSettings = defaultSettings;
         saveDistanceSettings(currentSettings);
     }
     
-    logActivity("✅ EEPROM initialized successfully");
+    logActivity("EEPROM berhasil diinisialisasi");
 }
 
 // --- BAGIAN 6: FUNGSI-FUNGSI UTAMA ---
@@ -347,8 +318,8 @@ void logActivity(const String& message) {
 }
 
 void logObstacle(long distance, const String& action) {
-    String obstacleMessage = "🚨 OBSTACLE! Distance: " + String(distance) + "cm (Threshold: " + 
-                            String(currentSettings.minDistance) + "cm) - Action: " + action;
+    String obstacleMessage = "HALANGAN TERDETEKSI! Jarak: " + String(distance) + "cm (Batas: " + 
+                            String(currentSettings.minDistance) + "cm) - Aksi: " + action;
     logActivity(obstacleMessage);
     
     if (client.connected()) {
@@ -362,7 +333,7 @@ void logObstacle(long distance, const String& action) {
 }
 
 void setupTime() {
-    logActivity("🕐 Memulai sinkronisasi waktu...");
+    logActivity("Memulai sinkronisasi waktu...");
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     logActivity("NTP dikonfigurasi - sinkronisasi background");
     timeConfigured = true;
@@ -400,7 +371,7 @@ void stopMotors() {
 }
 
 void handleCommand(String cmd) {
-    logActivity("CMD: " + cmd);
+    logActivity("Perintah: " + cmd);
     if (cmd == "forward") moveForward();
     else if (cmd == "backward") moveBackward();
     else if (cmd == "left") turnLeft();
@@ -409,7 +380,7 @@ void handleCommand(String cmd) {
 }
 
 void setupCamera() {
-    logActivity("Starting camera initialization...");
+    logActivity("Memulai inisialisasi kamera...");
     
     camera_config_t config;
     config.ledc_channel = LEDC_CHANNEL_2;
@@ -428,18 +399,18 @@ void setupCamera() {
     config.jpeg_quality = 15;
     config.fb_count = 2;
     
-    logActivity("Camera config set, initializing...");
+    logActivity("Konfigurasi kamera selesai, menginisialisasi...");
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        logActivity("Camera init failed with error: " + String(err));
-        logActivity("Restarting system...");
+        logActivity("Inisialisasi kamera gagal dengan error: " + String(err));
+        logActivity("Memulai ulang sistem...");
         delay(3000);
         ESP.restart();
     }
     
     sensor_t *s = esp_camera_sensor_get();
     if (s) {
-        logActivity("Optimizing camera sensor settings...");
+        logActivity("Mengoptimalkan pengaturan sensor kamera...");
         s->set_brightness(s, 1);
         s->set_contrast(s, 1);
         s->set_saturation(s, 0);
@@ -462,20 +433,20 @@ void setupCamera() {
         s->set_vflip(s, 0);
         s->set_dcw(s, 1);
         s->set_colorbar(s, 0);
-        logActivity("Camera sensor optimized");
+        logActivity("Sensor kamera dioptimalkan");
     }
     
-    logActivity("Camera ready!");
+    logActivity("Kamera siap!");
 }
 
 void publishStatus() {
     char jsonPayload[400];
     snprintf(jsonPayload, sizeof(jsonPayload),
-        "{\"uptime\":%lu,\"rssi\":%d,\"heap\":%u,\"auto\":%s,\"dist\":%ld,\"state\":%d,\"obstacle\":%s,\"attempts\":%d,\"settings\":{\"min\":%d,\"safe\":%d}}",
+        "{\"uptime\":%lu,\"rssi\":%d,\"heap\":%u,\"auto\":%s,\"dist\":%ld,\"state\":%d,\"obstacle\":%s,\"attempts\":%d,\"settings\":{\"min\":%d}}",
         millis()/1000, WiFi.RSSI(), ESP.getFreeHeap(), 
         autonomousMode ? "true" : "false", currentDistance, autoState,
         obstacleDetected ? "true" : "false", turnAttempts,
-        currentSettings.minDistance, currentSettings.safeDistance
+        currentSettings.minDistance
     );
     
     client.publish(MQTT_STATUS_TOPIC, jsonPayload, false);
@@ -502,28 +473,28 @@ void runAutonomousLogic() {
     
     // Use current settings for obstacle detection
     int obstacleThreshold = currentSettings.minDistance;
-    int criticalDistance = max(5, obstacleThreshold - 5); // 5cm less than threshold, minimum 5cm
+    int criticalDistance = max(5, obstacleThreshold - 5);
     
     // Check for obstacles using current settings
     if (currentDistance <= obstacleThreshold && currentDistance > 0) {
         if (!obstacleDetected) {
             obstacleDetected = true;
-            logObstacle(currentDistance, "First Detection");
+            logObstacle(currentDistance, "Deteksi Pertama");
         }
         
         if (currentTime - lastObstacleLog > 2000) {
-            logObstacle(currentDistance, "Continuous Detection");
+            logObstacle(currentDistance, "Deteksi Berkelanjutan");
             lastObstacleLog = currentTime;
         }
     } else if (currentDistance > obstacleThreshold) {
         if (obstacleDetected) {
             obstacleDetected = false;
-            logActivity("✅ Path Clear - Distance: " + String(currentDistance) + "cm (Threshold: " + String(obstacleThreshold) + "cm)");
+            logActivity("Jalur bebas - Jarak: " + String(currentDistance) + "cm (Batas: " + String(obstacleThreshold) + "cm)");
         }
     }
     
     if (currentTime - lastAutonomousLog > 3000) {
-        logActivity("AUTO MODE - Distance: " + String(currentDistance) + "cm - Threshold: " + String(obstacleThreshold) + "cm - State: " + getStateString(autoState));
+        logActivity("MODE AUTO - Jarak: " + String(currentDistance) + "cm - Batas: " + String(obstacleThreshold) + "cm - Status: " + getStateString(autoState));
         lastAutonomousLog = currentTime;
     }
     
@@ -532,7 +503,7 @@ void runAutonomousLogic() {
             if (currentDistance >= obstacleThreshold || currentDistance == 999) {
                 moveForward();
             } else {
-                logObstacle(currentDistance, "Stopping Forward Movement");
+                logObstacle(currentDistance, "Menghentikan Gerakan Maju");
                 autoState = AUTO_OBSTACLE_DETECTED;
                 autoStateStartTime = currentTime;
             }
@@ -540,7 +511,7 @@ void runAutonomousLogic() {
             
         case AUTO_OBSTACLE_DETECTED:
             stopMotors();
-            logObstacle(currentDistance, "Obstacle Confirmed - Initiating Avoidance");
+            logObstacle(currentDistance, "Halangan Dikonfirmasi - Memulai Penghindaran");
             autoState = AUTO_STOPPING;
             autoStateStartTime = currentTime;
             break;
@@ -549,10 +520,10 @@ void runAutonomousLogic() {
             stopMotors();
             if (currentTime - autoStateStartTime >= 200) {
                 if (currentDistance <= criticalDistance) {
-                    logObstacle(currentDistance, "Critical Distance - Backing Up");
+                    logObstacle(currentDistance, "Jarak Kritis - Mundur");
                     autoState = AUTO_BACKING;
                 } else {
-                    logObstacle(currentDistance, "Searching Alternative Path");
+                    logObstacle(currentDistance, "Mencari Jalur Alternatif");
                     autoState = AUTO_FINDING_PATH;
                 }
                 autoStateStartTime = currentTime;
@@ -563,7 +534,7 @@ void runAutonomousLogic() {
         case AUTO_BACKING:
             moveBackward();
             if (currentTime - autoStateStartTime >= 600) {
-                logActivity("Backing completed - Starting path search");
+                logActivity("Mundur selesai - Memulai pencarian jalur");
                 autoState = AUTO_FINDING_PATH;
                 autoStateStartTime = currentTime;
                 turnAttempts = 0;
@@ -573,7 +544,7 @@ void runAutonomousLogic() {
         case AUTO_FINDING_PATH:
             stopMotors();
             if (currentTime - autoStateStartTime >= 100) {
-                logActivity("🔄 Attempting to find alternative path - Try: " + String(turnAttempts + 1));
+                logActivity("Mencoba mencari jalur alternatif - Percobaan: " + String(turnAttempts + 1));
                 autoState = AUTO_TURNING_LEFT;
                 autoStateStartTime = currentTime;
             }
@@ -582,7 +553,7 @@ void runAutonomousLogic() {
         case AUTO_TURNING_LEFT:
             turnLeft();
             if (currentTime - autoStateStartTime >= 800) {
-                logActivity("Left turn completed - Checking path");
+                logActivity("Belok kiri selesai - Memeriksa jalur");
                 autoState = AUTO_CHECKING_LEFT;
                 autoStateStartTime = currentTime;
             }
@@ -592,11 +563,11 @@ void runAutonomousLogic() {
             stopMotors();
             if (currentTime - autoStateStartTime >= 300) {
                 if (currentDistance >= obstacleThreshold || currentDistance == 999) {
-                    logActivity("✅ Left path clear - Resuming forward");
+                    logActivity("Jalur kiri bebas - Melanjutkan maju");
                     autoState = AUTO_RESUME_FORWARD;
                     turnAttempts = 0;
                 } else {
-                    logActivity("❌ Left path blocked - Trying right");
+                    logActivity("Jalur kiri terblokir - Mencoba kanan");
                     autoState = AUTO_TURNING_RIGHT;
                     autoStateStartTime = currentTime;
                 }
@@ -606,7 +577,7 @@ void runAutonomousLogic() {
         case AUTO_TURNING_RIGHT:
             turnRight();
             if (currentTime - autoStateStartTime >= 1600) {
-                logActivity("Right turn completed - Checking path");
+                logActivity("Belok kanan selesai - Memeriksa jalur");
                 autoState = AUTO_CHECKING_RIGHT;
                 autoStateStartTime = currentTime;
             }
@@ -616,17 +587,17 @@ void runAutonomousLogic() {
             stopMotors();
             if (currentTime - autoStateStartTime >= 300) {
                 if (currentDistance >= obstacleThreshold || currentDistance == 999) {
-                    logActivity("✅ Right path clear - Resuming forward");
+                    logActivity("Jalur kanan bebas - Melanjutkan maju");
                     autoState = AUTO_RESUME_FORWARD;
                     turnAttempts = 0;
                 } else {
                     turnAttempts++;
                     if (turnAttempts < maxTurnAttempts) {
-                        logActivity("❌ Right path blocked - Backing up and retrying");
+                        logActivity("Jalur kanan terblokir - Mundur dan coba lagi");
                         autoState = AUTO_BACKING;
                         autoStateStartTime = currentTime;
                     } else {
-                        logActivity("🔄 Max attempts reached - Waiting for path to clear");
+                        logActivity("Maksimum percobaan tercapai - Menunggu jalur bebas");
                         autoState = AUTO_STOPPING;
                         autoStateStartTime = currentTime;
                         turnAttempts = 0;
@@ -637,11 +608,11 @@ void runAutonomousLogic() {
             
         case AUTO_RESUME_FORWARD:
             if (currentDistance >= obstacleThreshold || currentDistance == 999) {
-                logActivity("🚀 Resuming forward movement");
+                logActivity("Melanjutkan gerakan maju");
                 autoState = AUTO_FORWARD;
                 moveForward();
             } else {
-                logActivity("Path blocked again - Restarting avoidance");
+                logActivity("Jalur terblokir lagi - Memulai ulang penghindaran");
                 autoState = AUTO_OBSTACLE_DETECTED;
                 autoStateStartTime = currentTime;
             }
@@ -651,17 +622,17 @@ void runAutonomousLogic() {
 
 String getStateString(AutonomousState state) {
     switch (state) {
-        case AUTO_FORWARD: return "FORWARD";
-        case AUTO_OBSTACLE_DETECTED: return "OBSTACLE_DETECTED";
-        case AUTO_STOPPING: return "STOPPING";
-        case AUTO_BACKING: return "BACKING";
-        case AUTO_TURNING_LEFT: return "TURNING_LEFT";
-        case AUTO_CHECKING_LEFT: return "CHECKING_LEFT";
-        case AUTO_TURNING_RIGHT: return "TURNING_RIGHT";
-        case AUTO_CHECKING_RIGHT: return "CHECKING_RIGHT";
-        case AUTO_FINDING_PATH: return "FINDING_PATH";
-        case AUTO_RESUME_FORWARD: return "RESUME_FORWARD";
-        default: return "UNKNOWN";
+        case AUTO_FORWARD: return "MAJU";
+        case AUTO_OBSTACLE_DETECTED: return "HALANGAN_TERDETEKSI";
+        case AUTO_STOPPING: return "BERHENTI";
+        case AUTO_BACKING: return "MUNDUR";
+        case AUTO_TURNING_LEFT: return "BELOK_KIRI";
+        case AUTO_CHECKING_LEFT: return "CEK_KIRI";
+        case AUTO_TURNING_RIGHT: return "BELOK_KANAN";
+        case AUTO_CHECKING_RIGHT: return "CEK_KANAN";
+        case AUTO_FINDING_PATH: return "CARI_JALUR";
+        case AUTO_RESUME_FORWARD: return "LANJUT_MAJU";
+        default: return "TIDAK_DIKENAL";
     }
 }
 
@@ -683,58 +654,54 @@ void callback(char* topic, byte* payload, unsigned int length) {
     
     // Handle distance settings configuration
     if (topicStr == MQTT_DISTANCE_SETTINGS_TOPIC) {
-        logActivity("📐 Received distance settings: " + message);
+        logActivity("Menerima pengaturan jarak: " + message);
         
         // Parse JSON payload
         DynamicJsonDocument doc(512);
         DeserializationError error = deserializeJson(doc, message);
         
         if (error) {
-            logActivity("❌ JSON parsing failed: " + String(error.c_str()));
+            logActivity("Parsing JSON gagal: " + String(error.c_str()));
             return;
         }
         
         // Extract settings from JSON
         DistanceSettings newSettings;
         newSettings.minDistance = doc["minDistance"] | currentSettings.minDistance;
-        newSettings.safeDistance = doc["safeDistance"] | currentSettings.safeDistance;
         
         // Validate and save new settings
         if (validateDistanceSettings(newSettings)) {
             if (saveDistanceSettings(newSettings)) {
-                logActivity("✅ Distance settings updated and saved");
-                logActivity("New settings - Min: " + String(currentSettings.minDistance) + 
-                           "cm, Safe: " + String(currentSettings.safeDistance) + "cm");
+                logActivity("Pengaturan jarak diperbarui dan disimpan");
+                logActivity("Pengaturan baru - Minimum: " + String(currentSettings.minDistance) + "cm");
                 
                 // Send confirmation back to web interface
                 char confirmJson[200];
                 snprintf(confirmJson, sizeof(confirmJson),
-                    "{\"status\":\"success\",\"min\":%d,\"safe\":%d,\"timestamp\":%lu}",
-                    currentSettings.minDistance, currentSettings.safeDistance, 
-                    millis()
+                    "{\"status\":\"success\",\"min\":%d,\"timestamp\":%lu}",
+                    currentSettings.minDistance, millis()
                 );
                 client.publish(MQTT_STATUS_TOPIC, confirmJson, false);
             } else {
-                logActivity("❌ Failed to save distance settings");
+                logActivity("Gagal menyimpan pengaturan jarak");
             }
         } else {
-            logActivity("❌ Invalid distance settings received");
+            logActivity("Pengaturan jarak yang diterima tidak valid");
         }
         return;
     }
     
     if (topicStr == MQTT_COMMAND_AUTONOMOUS_TOPIC) {
         if (message == "on") {
-            logActivity("🤖 AUTONOMOUS MODE ACTIVATED");
-            logActivity("Using distance settings - Min: " + String(currentSettings.minDistance) + 
-                       "cm, Safe: " + String(currentSettings.safeDistance) + "cm");
+            logActivity("MODE AUTONOMOUS DIAKTIFKAN");
+            logActivity("Menggunakan pengaturan jarak - Minimum: " + String(currentSettings.minDistance) + "cm");
             autonomousMode = true;
             autoState = AUTO_FORWARD;
             autoStateStartTime = millis();
             obstacleDetected = false;
             turnAttempts = 0;
         } else if (message == "off") {
-            logActivity("🛑 AUTONOMOUS MODE DEACTIVATED");
+            logActivity("MODE AUTONOMOUS DINONAKTIFKAN");
             autonomousMode = false;
             stopMotors();
             autoState = AUTO_FORWARD;
@@ -767,34 +734,33 @@ void reconnect() {
     if (millis() - lastReconnectAttempt < 3000) return;
     lastReconnectAttempt = millis();
     
-    logActivity("Connecting to MQTT broker...");
+    logActivity("Menghubungkan ke broker MQTT...");
     
     String clientId = "ESP32-Car-" + String(random(0xffff), HEX);
     if (client.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
-        logActivity("MQTT Connected!");
+        logActivity("MQTT Terhubung!");
         logActivity("Client ID: " + clientId);
         isMqttConnectedBefore = true;
         
-        logActivity("Subscribing to topics...");
+        logActivity("Berlangganan ke topik...");
         client.subscribe(MQTT_CONTROL_MOVE_TOPIC);
         client.subscribe(MQTT_CONTROL_SPEED_TOPIC);
         client.subscribe(MQTT_CONTROL_FLASH_TOPIC);
         client.subscribe(MQTT_COMMAND_AUTONOMOUS_TOPIC);
-        client.subscribe(MQTT_DISTANCE_SETTINGS_TOPIC); // Subscribe to distance settings
-        logActivity("Subscribed to all topics");
+        client.subscribe(MQTT_DISTANCE_SETTINGS_TOPIC);
+        logActivity("Berlangganan ke semua topik");
         
         // Send current settings to web interface
         char settingsJson[200];
         snprintf(settingsJson, sizeof(settingsJson),
-            "{\"type\":\"settings\",\"min\":%d,\"safe\":%d,\"timestamp\":%lu}",
-            currentSettings.minDistance, currentSettings.safeDistance, 
-            millis()
+            "{\"type\":\"settings\",\"min\":%d,\"timestamp\":%lu}",
+            currentSettings.minDistance, millis()
         );
         client.publish(MQTT_STATUS_TOPIC, settingsJson, false);
         
         signalOnline();
     } else {
-        logActivity("MQTT connection failed with code: " + String(client.state()));
+        logActivity("Koneksi MQTT gagal dengan kode: " + String(client.state()));
     }
 }
 
@@ -809,27 +775,27 @@ void setup() {
     
     Serial.println();
     Serial.println("=====================================");
-    Serial.println("  ESP32 RC Car v4.0 - Enhanced      ");
-    Serial.println("   Adjustable Distance Control       ");
+    Serial.println("  ESP32 RC Car v5.0 - Sederhana     ");
+    Serial.println("   Kontrol Jarak Minimum Saja       ");
     Serial.println("=====================================");
     Serial.println();
     
-    logActivity("System booting...");
+    logActivity("Sistem booting...");
     logActivity("Free Heap: " + String(ESP.getFreeHeap()) + " bytes");
     
     // Initialize EEPROM and load distance settings
     initializeEEPROM();
     
     // PWM Setup
-    logActivity("Initializing PWM...");
+    logActivity("Menginisialisasi PWM...");
     ledcSetup(PWM_MOTOR_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
     ledcAttachPin(MOTOR_EN, PWM_MOTOR_CHANNEL);
     ledcSetup(PWM_FLASH_CHANNEL, PWM_FREQ, PWM_RESOLUTION);
     ledcAttachPin(FLASH_PIN, PWM_FLASH_CHANNEL);
-    logActivity("PWM initialized");
+    logActivity("PWM diinisialisasi");
     
     // GPIO Setup
-    logActivity("Setting up GPIO pins...");
+    logActivity("Mengatur pin GPIO...");
     pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT);
     pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
     pinMode(TRIG_PIN, OUTPUT); pinMode(ECHO_PIN, INPUT);
@@ -838,47 +804,46 @@ void setup() {
     digitalWrite(IN3, LOW); digitalWrite(IN4, LOW);
     ledcWrite(PWM_MOTOR_CHANNEL, 0);
     ledcWrite(PWM_FLASH_CHANNEL, 0);
-    logActivity("GPIO pins configured");
+    logActivity("Pin GPIO dikonfigurasi");
     
     // Camera Setup
-    logActivity("Initializing camera...");
+    logActivity("Menginisialisasi kamera...");
     setupCamera();
     
     // WiFi Setup
-    logActivity("Connecting to WiFi...");
+    logActivity("Menghubungkan ke WiFi...");
     for (auto const& cred : wifiList) { 
         wifiMulti.addAP(cred.ssid, cred.password); 
-        logActivity("Added WiFi: " + String(cred.ssid));
+        logActivity("WiFi ditambahkan: " + String(cred.ssid));
     }
     
     if(wifiMulti.run(15000) == WL_CONNECTED) {
-        logActivity("WiFi Connected!");
+        logActivity("WiFi Terhubung!");
         logActivity("SSID: " + WiFi.SSID());
-        logActivity("IP Address: " + WiFi.localIP().toString());
-        logActivity("Signal: " + String(WiFi.RSSI()) + " dBm");
+        logActivity("Alamat IP: " + WiFi.localIP().toString());
+        logActivity("Sinyal: " + String(WiFi.RSSI()) + " dBm");
     } else {
-        logActivity("WiFi connection failed!");
-        logActivity("Restarting in 5 seconds...");
+        logActivity("Koneksi WiFi gagal!");
+        logActivity("Memulai ulang dalam 5 detik...");
         delay(5000);
         ESP.restart();
     }
     
     // MQTT Setup
-    logActivity("Configuring MQTT...");
+    logActivity("Mengkonfigurasi MQTT...");
     espClient.setInsecure();
     client.setBufferSize(24000);
     client.setServer(mqtt_server, mqtt_port);
     client.setCallback(callback);
     client.setKeepAlive(30);
     
-    logActivity("Setup complete!");
-    logActivity("Active distance settings:");
-    logActivity("- Minimum distance: " + String(currentSettings.minDistance) + "cm");
-    logActivity("- Safe distance: " + String(currentSettings.safeDistance) + "cm");
-    logActivity("Waiting for MQTT connection...");
+    logActivity("Setup selesai!");
+    logActivity("Pengaturan jarak aktif:");
+    logActivity("- Jarak minimum: " + String(currentSettings.minDistance) + "cm");
+    logActivity("Menunggu koneksi MQTT...");
     
     Serial.println("=====================================");
-    Serial.println("         SYSTEM READY");
+    Serial.println("         SISTEM SIAP");
     Serial.println("=====================================");
     Serial.println();
 }
@@ -927,7 +892,7 @@ void loop() {
                 } else {
                     consecutiveFrameFailures++;
                     if (consecutiveFrameFailures > maxFrameFailures) {
-                        logActivity("Camera stream issues, restarting...");
+                        logActivity("Masalah streaming kamera, memulai ulang...");
                         ESP.restart();
                     }
                 }
