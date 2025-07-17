@@ -300,15 +300,7 @@ const RCCarController: React.FC = () => {
     // Konversi persentase ke nilai PWM ESP32 (100-255)
     sendCommand('speed', Math.round(100 + (v / 100) * 155)); 
   };
-  
-  /**
-   * Handler perubahan intensitas LED
-   * 
-   * Algoritma konversi:
-   * 1. Input: Persentase 0-100% dari UI slider
-   * 2. Konversi ke range PWM: 0-255
-   * 3. Formula: (percentage/100 * 255)
-   */
+
   const handleLEDChange = (v: number) => { 
     setLedPercent(v); 
     // Konversi persentase ke nilai PWM (0-255)
