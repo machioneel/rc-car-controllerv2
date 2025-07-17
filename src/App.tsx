@@ -217,17 +217,6 @@ const RCCarController: React.FC = () => {
   // ALGORITMA PEMROSESAN MQTT MESSAGES
   // ===============================================================
   
-  /**
-   * Effect untuk menangani pesan MQTT yang masuk
-   * 
-   * Algoritma pemrosesan berdasarkan topic:
-   * 1. CAMERA: Convert binary data ke Object URL untuk display
-   * 2. LOG: Parse dan tambahkan ke log panel + database
-   * 3. STATUS: Log status mobil ke console
-   * 4. SENSOR_DISTANCE: Update nilai sensor jarak
-   * 
-   * Memory management: Revoke URL lama untuk mencegah memory leak
-   */
   useEffect(() => {
     if (lastMessage) {
       const { topic, message } = lastMessage;
