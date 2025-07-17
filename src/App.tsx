@@ -372,16 +372,6 @@ const RCCarController: React.FC = () => {
   // UTILITY FUNCTIONS
   // ===============================================================
   
-  /**
-   * Fungsi untuk styling indikator keyboard
-   * 
-   * Algoritma:
-   * 1. Cek apakah key sedang aktif dan tidak dalam mode autonomous
-   * 2. Return class CSS yang sesuai untuk visual feedback
-   * 
-   * @param key - Karakter key yang akan dicek
-   * @returns String class CSS untuk styling
-   */
   const getKeyIndicatorClass = (key: string) => 
     `text-xs px-2 py-1 rounded transition-all duration-200 ${ 
       activeKeys.has(key) && !isAutonomous 
