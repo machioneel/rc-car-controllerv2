@@ -23,16 +23,6 @@ export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) =
   // STATUS CONFIGURATION ALGORITHM
   // ===============================================================
   
-  /**
-   * Function untuk mendapatkan konfigurasi visual berdasarkan status
-   * 
-   * Algoritma:
-   * 1. Switch berdasarkan status string
-   * 2. Return object dengan icon, text, dan color scheme
-   * 3. Konsistensi visual untuk setiap status
-   * 
-   * @returns Object dengan konfigurasi visual (icon, text, colors)
-   */
   const getStatusConfig = () => {
     switch (status) {
       case 'connected':
