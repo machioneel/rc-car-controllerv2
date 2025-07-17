@@ -339,15 +339,6 @@ const RCCarController: React.FC = () => {
     }
   }, [sendCommand, activeKeys, isAutonomous]);
 
-  /**
-   * Handler untuk key release events
-   * 
-   * Algoritma:
-   * 1. Blokir jika mode autonomous aktif
-   * 2. Validasi key yang diizinkan
-   * 3. Update visual feedback (hapus dari activeKeys)
-   * 4. Kirim perintah stop ke ESP32
-   */
   const handleKeyUp = useCallback((event: KeyboardEvent) => {
     if (isAutonomous) return; // Blokir saat autonomous mode
     
