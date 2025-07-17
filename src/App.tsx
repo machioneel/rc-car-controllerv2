@@ -293,13 +293,6 @@ const RCCarController: React.FC = () => {
     sendCommand('autonomous', newMode ? 'on' : 'off');
     handleLogMessage(`[WEB] Autonomous mode set to ${newMode ? 'ON' : 'OFF'}`);
   };
-
-  /**
-   * Rotasi gambar kamera 90 derajat
-   * 
-   * Algoritma: Increment rotasi dengan modulo 360 untuk cycling
-   * (0° → 90° → 180° → 270° → 0°)
-   */
   const handleRotate = () => setRotation(p => (p + 90) % 360);
   
   /**
