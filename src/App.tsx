@@ -18,17 +18,6 @@ import { DistanceSettings } from './types/settings';
 // KONFIGURASI UTAMA APLIKASI
 // ===================================================================
 
-/**
- * Fungsi untuk menghasilkan Client ID yang stabil untuk koneksi MQTT
- * 
- * Algoritma:
- * 1. Cek apakah sudah ada client ID tersimpan di localStorage
- * 2. Jika belum ada, generate ID baru dengan format: rccar_web_controller_[random8char]
- * 3. Simpan ID ke localStorage untuk konsistensi koneksi
- * 4. Return client ID yang stabil
- * 
- * Tujuan: Mencegah multiple connection dari browser yang sama
- */
 function getStableClientId() {
   const STORAGE_KEY = 'rc_car_mqtt_client_id';
   let clientId = localStorage.getItem(STORAGE_KEY);
