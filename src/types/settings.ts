@@ -2,9 +2,6 @@
 // DISTANCE SETTINGS TYPE DEFINITIONS (in Centimeters) - SIMPLIFIED
 // ===================================================================
 
-/**
- * Interface untuk pengaturan jarak minimum dalam centimeter
- */
 export interface DistanceSettings {
   minDistance: number; 
 }
