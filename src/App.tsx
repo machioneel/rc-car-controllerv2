@@ -313,17 +313,6 @@ const RCCarController: React.FC = () => {
   // ALGORITMA KEYBOARD INPUT HANDLING
   // ===============================================================
   
-  /**
-   * Handler untuk key press events
-   * 
-   * Algoritma:
-   * 1. Filter key repeat events untuk mencegah spam
-   * 2. Blokir input saat mode autonomous aktif
-   * 3. Validasi key yang diizinkan (W, A, S, D)
-   * 4. Update visual feedback (activeKeys state)
-   * 5. Map key ke perintah pergerakan
-   * 6. Kirim perintah ke ESP32
-   */
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // Algoritma filtering:
     // - event.repeat: mencegah spam saat key ditahan
