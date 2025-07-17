@@ -5,18 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 // ===================================================================
 // LOGIN FORM COMPONENT
 // ===================================================================
-
-/**
- * Component untuk form login dengan validasi dan error handling
- * 
- * Fitur:
- * 1. Email dan password input dengan validasi
- * 2. Show/hide password functionality
- * 3. Loading state dengan spinner
- * 4. Error handling dan display
- * 5. Responsive design
- * 6. Accessibility features
- */
 export const LoginForm: React.FC = () => {
   
   // ===============================================================
