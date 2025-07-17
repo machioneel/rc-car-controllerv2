@@ -357,14 +357,6 @@ const RCCarController: React.FC = () => {
     }
   }, [sendCommand, isAutonomous]);
 
-  /**
-   * Effect untuk menambahkan/menghapus keyboard event listeners
-   * 
-   * Algoritma:
-   * 1. Tambahkan global event listeners saat component mount
-   * 2. Cleanup listeners saat component unmount
-   * 3. Re-attach listeners saat handler functions berubah
-   */
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
