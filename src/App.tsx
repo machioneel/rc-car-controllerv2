@@ -697,15 +697,6 @@ const RCCarController: React.FC = () => {
 // KOMPONEN UTAMA APP (Dengan Authentication Wrapper)
 // ===================================================================
 
-/**
- * Komponen wrapper untuk menangani authentication state
- * 
- * Algoritma:
- * 1. Cek loading state dari auth context
- * 2. Jika loading: tampilkan loading spinner
- * 3. Jika tidak ada user: tampilkan login form
- * 4. Jika user authenticated: tampilkan RC car controller
- */
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
 
