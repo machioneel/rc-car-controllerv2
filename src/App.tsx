@@ -88,16 +88,6 @@ const RCCarController: React.FC = () => {
   // DATABASE OPERATIONS
   // ===============================================================
   
-  /**
-   * Function untuk load logs dari database saat aplikasi start
-   * 
-   * Algoritma:
-   * 1. Set loading state
-   * 2. Fetch logs dari database (latest 100 entries)
-   * 3. Convert format database ke format UI state
-   * 4. Update logs state
-   * 5. Reset loading state
-   */
   const loadLogsFromDatabase = useCallback(async () => {
     setIsLoadingLogs(true);
     
