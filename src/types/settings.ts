@@ -6,12 +6,9 @@
  * Interface untuk pengaturan jarak minimum dalam centimeter
  */
 export interface DistanceSettings {
-  minDistance: number;    // Jarak minimum dalam cm (untuk stop/mundur)
+  minDistance: number; 
 }
 
-/**
- * Default values untuk distance settings
- */
 export const DEFAULT_DISTANCE_SETTINGS: DistanceSettings = {
   minDistance: 15, 
 };
