@@ -287,15 +287,6 @@ const RCCarController: React.FC = () => {
   // ===============================================================
   // HANDLER FUNCTIONS UNTUK INTERAKSI UI
   // ===============================================================
-  
-  /**
-   * Toggle mode autonomous driving
-   * 
-   * Algoritma:
-   * 1. Flip boolean state isAutonomous
-   * 2. Kirim perintah 'on'/'off' ke ESP32
-   * 3. Log perubahan mode untuk debugging
-   */
   const toggleAutonomousMode = () => {
     const newMode = !isAutonomous;
     setIsAutonomous(newMode);
