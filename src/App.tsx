@@ -267,10 +267,6 @@ const RCCarController: React.FC = () => {
   const sendCommand = useCallback((type: 'move' | 'speed' | 'flash' | 'autonomous', value: string | number) => {
     // Validasi koneksi MQTT
     if (isConnected) {
-      // Algoritma kontrol mode autonomous:
-      // - Jika perintah autonomous: selalu izinkan
-      // - Jika mode autonomous aktif: blokir perintah manual
-      // - Jika mode manual: izinkan semua perintah
       if (type === 'autonomous' || !isAutonomous) {
         // Mapping tipe perintah ke topic MQTT
         let topic: string;
