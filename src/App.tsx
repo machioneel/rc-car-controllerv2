@@ -264,18 +264,6 @@ const RCCarController: React.FC = () => {
   // ALGORITMA PENGIRIMAN PERINTAH KE ESP32
   // ===============================================================
   
-  /**
-   * Fungsi terpusat untuk mengirim perintah ke ESP32
-   * 
-   * Algoritma:
-   * 1. Validasi koneksi MQTT aktif
-   * 2. Cek mode autonomous - hanya perintah autonomous yang diizinkan saat mode aktif
-   * 3. Map tipe perintah ke topic MQTT yang sesuai
-   * 4. Publish perintah ke topic dengan QoS 0
-   * 
-   * @param type - Jenis perintah (move, speed, flash, autonomous)
-   * @param value - Nilai perintah (string atau number)
-   */
   const sendCommand = useCallback((type: 'move' | 'speed' | 'flash' | 'autonomous', value: string | number) => {
     // Validasi koneksi MQTT
     if (isConnected) {
