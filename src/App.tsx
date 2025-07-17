@@ -198,16 +198,6 @@ const RCCarController: React.FC = () => {
   // DISTANCE SETTINGS MANAGEMENT
   // ===============================================================
   
-  /**
-   * Handler untuk perubahan distance settings
-   * 
-   * Algoritma:
-   * 1. Terima settings baru dari DistanceSettingsPanel
-   * 2. Kirim settings ke ESP32 via MQTT
-   * 3. Log perubahan untuk debugging
-   * 
-   * @param settings - Distance settings yang baru
-   */
   const handleDistanceSettingsChange = useCallback((settings: DistanceSettings) => {
     if (isConnected) {
       // Kirim settings ke ESP32 dalam format JSON
