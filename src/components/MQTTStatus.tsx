@@ -17,19 +17,6 @@ interface MQTTStatusProps {
 // MQTT STATUS COMPONENT
 // ===================================================================
 
-/**
- * Component untuk menampilkan status koneksi MQTT dengan visual indicator
- * 
- * Fitur:
- * 1. Visual indicator berdasarkan status koneksi
- * 2. Color coding yang konsisten
- * 3. Icon yang sesuai untuk setiap status
- * 4. Additional info untuk connected state
- * 5. Responsive design
- * 
- * @param status - Status koneksi detail
- * @param isConnected - Boolean flag untuk koneksi
- */
 export const MQTTStatus: React.FC<MQTTStatusProps> = ({ status, isConnected }) => {
   
   // ===============================================================
