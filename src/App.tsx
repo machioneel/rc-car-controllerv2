@@ -123,18 +123,6 @@ const RCCarController: React.FC = () => {
   // ALGORITMA PEMROSESAN LOG MESSAGES
   // ===============================================================
   
-  /**
-   * Handler untuk memproses log messages dari ESP32
-   * 
-   * Algoritma:
-   * 1. Analisis level log berdasarkan keyword dalam message
-   * 2. Buat object log dengan metadata (id, timestamp, level, message)
-   * 3. Simpan ke database secara asynchronous
-   * 4. Tambahkan ke array logs dengan batasan maksimal 100 entries
-   * 5. Gunakan useCallback untuk optimasi performa
-   * 
-   * @param logData - String log message dari ESP32
-   */
   const handleLogMessage = useCallback(async (logData: string) => {
     // Algoritma deteksi level log berdasarkan keyword
     let level = 'INFO'; // Default level
