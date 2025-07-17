@@ -11,9 +11,6 @@ export const LoginForm: React.FC = () => {
   // STATE MANAGEMENT
   // ===============================================================
   
-  /**
-   * Form state untuk input fields
-   */
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
