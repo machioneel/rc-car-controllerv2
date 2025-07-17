@@ -250,14 +250,6 @@ const RCCarController: React.FC = () => {
   // ALGORITMA SUBSCRIPTION MQTT TOPICS
   // ===============================================================
   
-  /**
-   * Effect untuk subscribe ke topic MQTT saat koneksi berhasil
-   * 
-   * Algoritma:
-   * 1. Tunggu hingga koneksi MQTT established
-   * 2. Subscribe ke semua topic yang diperlukan untuk menerima data
-   * 3. Dependency array memastikan re-subscription saat koneksi berubah
-   */
   useEffect(() => {
     if (isConnected) {
       // Subscribe ke topic-topic yang diperlukan
