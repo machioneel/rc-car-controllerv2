@@ -314,9 +314,6 @@ const RCCarController: React.FC = () => {
   // ===============================================================
   
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Algoritma filtering:
-    // - event.repeat: mencegah spam saat key ditahan
-    // - isAutonomous: blokir manual control saat autonomous mode
     if (event.repeat || isAutonomous) return;
     
     const key = event.key.toLowerCase();
