@@ -4,17 +4,6 @@ import { Loader, Car } from 'lucide-react';
 // ===================================================================
 // LOADING SPINNER COMPONENT
 // ===================================================================
-
-/**
- * Component untuk menampilkan loading state dengan animasi
- * 
- * Fitur:
- * 1. Centered layout dengan gradient background
- * 2. App icon dengan loading spinner overlay
- * 3. Animated dots untuk visual feedback
- * 4. Consistent branding dengan main app
- * 5. Responsive design
- */
 export const LoadingSpinner: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
