@@ -307,10 +307,6 @@ const RCCarController: React.FC = () => {
     sendCommand('flash', Math.round((v / 100) * 255)); 
   };
   
-  /**
-   * Handler kontrol arah pergerakan
-   * Direct mapping dari UI button ke MQTT command
-   */
   const handleDirectionControl = (dir: string) => sendCommand('move', dir);
   
   // ===============================================================
