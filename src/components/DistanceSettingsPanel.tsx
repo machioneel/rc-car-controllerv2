@@ -11,7 +11,7 @@ interface DistanceSettingsPanelProps {
 export const DistanceSettingsPanel: React.FC<DistanceSettingsPanelProps> = ({ 
   onSettingsChange, 
   isConnected 
-}) => {
+}) => {fdefau
   
   const {
     settings,
